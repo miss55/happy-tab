@@ -1,0 +1,8 @@
+{
+  "appName": {
+    "message": "HappyTab"
+  },
+  "appDescription": {
+    "message": "Remplace le nouvel onglet par un espace local pour onglets, favoris et tâches. Sans compte ; sync optionnelle vers votre stockage."
+  }
+}

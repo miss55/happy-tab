@@ -1,0 +1,8 @@
+{
+  "appName": {
+    "message": "HappyTab"
+  },
+  "appDescription": {
+    "message": "Replaces the new tab page with a local workspace for open tabs, bookmarks, and todos. No login; optional sync to storage you own."
+  }
+}

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HappyTab Privacy Policy</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        line-height: 1.55;
+      }
+      body {
+        margin: 0 auto;
+        max-width: 44rem;
+        padding: 2rem 1.25rem 4rem;
+      }
+      h1,
+      h2 {
+        line-height: 1.25;
+      }
+      h1 {
+        font-size: 1.75rem;
+      }
+      h2 {
+        margin-top: 2rem;
+        font-size: 1.15rem;
+      }
+      .meta {
+        color: color-mix(in srgb, CanvasText 62%, Canvas);
+      }
+      nav {
+        margin: 1rem 0 2rem;
+      }
+      a {
+        color: #2563eb;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>HappyTab Privacy Policy</h1>
+    <p class="meta">Effective date: 30 August 2026 · Last updated: 31 August 2026</p>
+    <nav>
+      <a href="#zh">中文</a>
+    </nav>
+
+    <p>
+      HappyTab is a local-first browser extension that replaces the new tab page.
+      It works without an account. The developer does not operate a HappyTab
+      backend and does not collect, sell, or share your data.
+    </p>
+
+    <h2>Data stored on your device</h2>
+    <p>By default, all product data stays in this browser on this device:</p>
+    <ul>
+      <li>Bookmark groups, saved links, todos, and usage counts in IndexedDB.</li>
+      <li>
+        Theme, language, and optional sync settings in the browser extension’s
+        local storage.
+      </li>
+      <li>An optional local wallpaper image in IndexedDB. It is never uploaded.</li>
+    </ul>
+
+    <h2>Open tabs</h2>
+    <p>
+      HappyTab requests the <code>tabs</code> permission so it can list, switch,
+      and close tabs that are already open, and so you can save a tab as a link.
+      That includes tab titles and URLs. This information is shown in the new tab
+      page and, if you save a link, stored locally. It is not sent to the
+      developer.
+    </p>
+
+    <h2>Optional cloud sync</h2>
+    <p>
+      Sync is off until you turn it on. If you enable it, HappyTab uploads a
+      snapshot of your local bookmarks, todos, and usage stats to a store
+      <strong>you</strong> configure. That snapshot can include records you have
+      already deleted locally, so the deletion stays in sync across devices.
+      Currently open tab titles and URLs, wallpaper, theme settings, credentials,
+      and browser identity (such as a user agent) are not uploaded.
+    </p>
+    <ul>
+      <li>JSONBin</li>
+      <li>GitHub Gist</li>
+      <li>Cloudflare KV</li>
+      <li>Upstash Redis</li>
+      <li>or a custom HTTPS endpoint you control</li>
+    </ul>
+    <p>
+      Credentials you enter (API tokens, keys, endpoint URLs) stay in this
+      browser’s local extension storage. A custom endpoint must use HTTPS; HTTP
+      URLs are rejected. HappyTab never receives a copy of your snapshot. You
+      can optionally encrypt the snapshot with AES-256-GCM before upload.
+      Chrome and Microsoft Edge use different extension IDs, so local data is
+      not shared between those browsers unless you set up sync yourself.
+    </p>
+    <p>
+      Cloudflare KV has no CORS access from the new tab page. If you choose that
+      provider, HappyTab asks at that moment for permission to contact
+      <code>https://api.cloudflare.com</code>. This is not requested at install
+      time.
+    </p>
+
+    <h2>What HappyTab does not do</h2>
+    <ul>
+      <li>No sign-in or first-party account.</li>
+      <li>No advertising, analytics, or crash reporting services.</li>
+      <li>No remote code. The extension only runs scripts shipped in the package.</li>
+      <li>No access to your browsing history beyond currently open tabs.</li>
+    </ul>
+
+    <h2>Your choices</h2>
+    <p>
+      You can keep using HappyTab entirely offline. From the new tab page you can
+      export a JSON backup, delete individual bookmarks, groups, or todos, or
+      replace all local bookmarks, todos, and usage stats by importing a backup
+      (that replace step asks for confirmation). You can turn sync off, and you
+      can uninstall the extension to clear its local storage. If you used a
+      third-party store, delete the snapshot there as well.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+      For privacy questions, use the support contact on the Chrome Web Store or
+      Microsoft Edge Add-ons listing for HappyTab.
+    </p>
+
+    <h1 id="zh">HappyTab 隐私政策</h1>
+    <p class="meta">生效日期：2026 年 8 月 30 日 · 最近更新：2026 年 8 月 31 日</p>
+
+    <p>
+      HappyTab 是本地优先的浏览器扩展，用于替换新标签页。无需登录。开发者没有
+      HappyTab 自有服务器，也不会收集、出售或对外提供你的数据。
+    </p>
+
+    <h2>保存在你设备上的数据</h2>
+    <ul>
+      <li>书签分组、已保存链接、待办和打开次数：存在本机 IndexedDB。</li>
+      <li>主题、语言、可选同步设置：存在扩展的本地存储。</li>
+      <li>可选的本地壁纸：只存在 IndexedDB，不会上传。</li>
+    </ul>
+
+    <h2>当前打开的标签页</h2>
+    <p>
+      HappyTab 申请 <code>tabs</code> 权限，用于列出、切换、关闭当前已打开的标签，
+      以及把标签保存为链接。这会读取标签标题和网址，仅在新标签页展示；若你保存为链接，
+      则只存在本机。不会发送给开发者。
+    </p>
+
+    <h2>可选的云同步</h2>
+    <p>
+      默认同步关闭。只有你主动开启后，才会把书签、待办和使用统计的快照上传到
+      <strong>你自己配置</strong> 的存储：JSONBin、GitHub Gist、Cloudflare KV、Upstash
+      Redis，或你控制的 HTTPS 接口。快照可能包含你已在本地删除的记录，以便各设备保持删除状态。
+      当前打开的标签标题和网址、壁纸、主题、凭据和浏览器身份（例如 User-Agent）不会上传。
+      令牌和地址只存在本机。开发者不会保存副本。
+      你可以选择在上传前使用 AES-256-GCM 加密。自定义接口必须是 HTTPS，HTTP 地址会被拒绝。
+      不同浏览器的扩展 ID 不同，
+      两边的本地数据互不同步，除非你自行配置同步。
+    </p>
+    <p>
+      若使用 Cloudflare KV，首次测试或同步时浏览器才会询问是否允许访问
+      <code>api.cloudflare.com</code>。安装时不会申请该权限。
+    </p>
+
+    <h2>HappyTab 不会做的事</h2>
+    <ul>
+      <li>没有登录或自有账号。</li>
+      <li>没有广告、统计或崩溃上报。</li>
+      <li>不加载远程脚本，只运行安装包内的代码。</li>
+      <li>除当前打开的标签外，不读取浏览历史。</li>
+    </ul>
+
+    <h2>你的选择</h2>
+    <p>
+      可以始终离线使用。可在新标签页导出 JSON 备份、逐条删除书签分组或待办，或通过导入备份
+      （需确认）替换全部本地书签、待办和使用统计。可关闭同步，或卸载扩展以清除本地存储。
+      若使用了第三方存储，请同时在那边删除快照。
+    </p>
+
+    <h2>联系</h2>
+    <p>隐私相关问题，请通过 Chrome 网上应用店或 Microsoft Edge 加载项商品页中的支持方式联系。</p>
+  </body>
+</html>

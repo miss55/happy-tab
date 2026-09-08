@@ -1,0 +1,8 @@
+{
+  "appName": {
+    "message": "HappyTab"
+  },
+  "appDescription": {
+    "message": "Ersetzt die neue Tab-Seite. Lokaler Bereich für Tabs, Lesezeichen und Aufgaben. Kein Login; optionaler Sync zum eigenen Speicher."
+  }
+}

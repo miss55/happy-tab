@@ -1,0 +1,20 @@
+{
+  "name": "happy-tab",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "author": "Jenson (https://github.com/miss55)",
+  "description": "HappyTab monorepo",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "check:manifest": "node scripts/validate-extension-manifest.mjs",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r typecheck",
+    "dev:extension": "pnpm --filter @happytab/extension dev",
+    "build:extension": "pnpm --filter @happytab/extension build"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
