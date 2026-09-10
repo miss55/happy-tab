@@ -942,14 +942,14 @@ h1 {
   width: min(680px, 100%);
   max-height: calc(100vh - 48px);
   display: grid;
-  gap: 16px;
-  padding: 20px;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
   border: 1px solid #dbe1e9;
   border-radius: 14px;
   background: #ffffff;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.25);
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .data-dialog-header,
@@ -961,18 +961,24 @@ h1 {
 }
 
 .data-dialog-header {
-  position: sticky;
-  top: calc(var(--theme-panel-padding) * -1);
   z-index: 5;
   align-items: start;
-  margin:
-    calc(var(--theme-panel-padding) * -1)
-    calc(0px - var(--theme-panel-padding) - var(--theme-scrollbar-size))
-    0
-    calc(var(--theme-panel-padding) * -1);
-  padding: var(--theme-panel-padding);
+  margin: 0;
+  padding: 20px;
   background: var(--theme-surface);
   box-shadow: 0 1px 0 var(--theme-border);
+}
+
+.data-dialog-body,
+.theme-dialog-scroll-area {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 20px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .data-dialog-header h2,
@@ -1175,26 +1181,6 @@ h1 {
 
 .theme-dialog {
   width: min(980px, 100%);
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-.theme-dialog > .data-dialog-header {
-  position: static;
-  margin: 0;
-  padding: var(--theme-panel-padding);
-}
-
-.theme-dialog-scroll-area {
-  min-height: 0;
-  display: grid;
-  gap: var(--theme-layout-gap);
-  padding: var(--theme-panel-padding);
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
 }
 
 .theme-gallery-heading {
@@ -2559,20 +2545,42 @@ label.theme-custom-fields {
 }
 
 .close-button {
+  position: relative;
   width: 32px;
   height: 32px;
   min-width: 32px;
-  display: inline-grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   align-self: start;
   padding: 0;
   border: 0;
   border-radius: 8px;
   color: #66798c;
   background: transparent;
-  font-size: 24px;
-  line-height: 1;
+  font-size: 0;
+  line-height: 0;
   cursor: pointer;
+}
+
+.close-button::before,
+.close-button::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.close-button::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.close-button::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .close-button:hover {
@@ -3875,15 +3883,20 @@ select:focus,
 
 /* Shared shape and depth tokens keep every workspace module in the selected style. */
 .data-dialog {
-  gap: var(--theme-layout-gap);
-  padding: var(--theme-panel-padding);
+  gap: 0;
+  padding: 0;
   border-radius: var(--theme-radius-lg);
 }
 
-.data-dialog.theme-dialog {
-  gap: 0;
-  padding: 0;
-  scrollbar-gutter: auto;
+.data-dialog-header,
+.data-dialog-body,
+.theme-dialog-scroll-area {
+  padding: var(--theme-panel-padding);
+}
+
+.data-dialog-body,
+.theme-dialog-scroll-area {
+  gap: var(--theme-layout-gap);
 }
 
 .server-panel,
@@ -4136,7 +4149,6 @@ select,
   }
 }
 
-.data-dialog,
 .server-panel[open],
 .workspace-grid > .workspace-column:first-child {
   scrollbar-gutter: stable;
@@ -4797,7 +4809,6 @@ select,
 
   .data-dialog {
     max-height: calc(100vh - 20px);
-    padding: var(--theme-panel-padding);
   }
 
   .data-dialog-section {

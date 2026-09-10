@@ -1429,26 +1429,28 @@ onBeforeUnmount(() => {
           </button>
         </header>
 
-        <form class="todo-create-form" @submit.prevent="addTodo">
-          <label for="todo-title">{{ t("todos.todoTitle") }}</label>
-          <input
-            id="todo-title"
-            ref="todoTitleInput"
-            v-model="newTodoTitle"
-            type="text"
-            :placeholder="t('todos.placeholder')"
-            required
-          />
-          <p v-if="todosErrorMessage" class="error-text">
-            {{ t(todosErrorMessage) }}
-          </p>
-          <div class="todo-dialog-actions">
-            <button class="primary-button" type="submit">{{ t("common.add") }}</button>
-            <button class="secondary-button" type="button" @click="closeTodoDialog">
-              {{ t("common.cancel") }}
-            </button>
-          </div>
-        </form>
+        <div class="data-dialog-body">
+          <form class="todo-create-form" @submit.prevent="addTodo">
+            <label for="todo-title">{{ t("todos.todoTitle") }}</label>
+            <input
+              id="todo-title"
+              ref="todoTitleInput"
+              v-model="newTodoTitle"
+              type="text"
+              :placeholder="t('todos.placeholder')"
+              required
+            />
+            <p v-if="todosErrorMessage" class="error-text">
+              {{ t(todosErrorMessage) }}
+            </p>
+            <div class="todo-dialog-actions">
+              <button class="primary-button" type="submit">{{ t("common.add") }}</button>
+              <button class="secondary-button" type="button" @click="closeTodoDialog">
+                {{ t("common.cancel") }}
+              </button>
+            </div>
+          </form>
+        </div>
       </section>
     </div>
 
@@ -1475,6 +1477,7 @@ onBeforeUnmount(() => {
           </button>
         </header>
 
+        <div class="data-dialog-body">
         <form class="sync-config-form" @submit.prevent="saveSyncSettings">
           <div class="form-row">
             <label for="sync-provider">{{ t("cloud.provider") }}</label>
@@ -1659,6 +1662,7 @@ onBeforeUnmount(() => {
             {{ t(syncLastResult.message ?? (syncLastResult.success ? "cloud.syncSuccess" : "cloud.syncFailed")) }}
           </p>
         </div>
+        </div>
       </section>
     </div>
 
@@ -1685,7 +1689,7 @@ onBeforeUnmount(() => {
           </button>
         </header>
 
-        <div class="theme-dialog-scroll-area">
+        <div class="data-dialog-body theme-dialog-scroll-area">
           <header class="theme-setting-header theme-gallery-heading">
             <h3>{{ t("theme.gallery") }}</h3>
             <p>{{ t("theme.galleryDescription") }}</p>
@@ -1972,6 +1976,7 @@ onBeforeUnmount(() => {
           </button>
         </header>
 
+        <div class="data-dialog-body">
         <section class="data-dialog-section">
           <div>
             <h3>{{ t("data.exportTitle") }}</h3>
@@ -2040,6 +2045,7 @@ onBeforeUnmount(() => {
           {{ dataTransferNoticeMessage }}
         </p>
         <p class="data-exclusions">{{ t("data.excluded") }}</p>
+        </div>
       </section>
     </div>
 

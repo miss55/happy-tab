@@ -43,6 +43,7 @@ const privacyPolicyUrl =
         </button>
       </header>
 
+      <div class="data-dialog-body">
       <section class="data-dialog-section about-section">
         <div>
           <h3>{{ t("about.usageTitle") }}</h3>
@@ -87,6 +88,7 @@ const privacyPolicyUrl =
       </section>
 
       <p class="about-dialog-footer">{{ t("about.version", { version }) }}</p>
+      </div>
     </section>
   </div>
 </template>
