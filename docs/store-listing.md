@@ -39,7 +39,7 @@ Wait until Pages is live: privacy-policy URL, screenshots, dashboard forms.
 | `store-assets/small-promo-440x280.png` | Chrome small tile and Edge small promo |
 | `store-assets/large-promo-1400x560.png` | Edge large promo tile (optional) |
 
-Regenerate icons after brand changes:
+Regenerate package icons from `store-assets/logo-300.png` after brand changes. This does not overwrite the custom store promo tiles.
 
 ```sh
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-extension-icons.ps1
