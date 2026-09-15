@@ -4,6 +4,10 @@ HappyTab is a local-first Manifest V3 extension that replaces the browser new ta
 
 This repository is a pnpm workspace. The product is the Chrome extension in `apps/extension`. Cloud sync uses user-owned third-party storage; there is no first-party backend.
 
+- Source: [https://github.com/miss55/happy-tab](https://github.com/miss55/happy-tab)
+- Issues: [https://github.com/miss55/happy-tab/issues](https://github.com/miss55/happy-tab/issues)
+- Privacy policy: [https://miss55.github.io/happy-tab/privacy-policy.html](https://miss55.github.io/happy-tab/privacy-policy.html)
+
 ## Structure
 
 - `apps/extension`: Chrome MV3 extension built with Vite, Vue 3, and TypeScript.
@@ -43,7 +47,7 @@ pnpm build:extension
 
 Load `apps/extension/dist` as an unpacked extension in Chrome (`chrome://extensions`) or Edge (`edge://extensions`).
 
-See [docs/store-listing.md](./docs/store-listing.md) for Chrome Web Store and Microsoft Edge Add-ons packaging, and [docs/privacy-policy.md](./docs/privacy-policy.md) for the privacy policy that those stores require.
+See [docs/store-listing.md](./docs/store-listing.md) for Chrome Web Store and Microsoft Edge Add-ons packaging, and [docs/privacy-policy.md](./docs/privacy-policy.md) for the privacy policy that those stores require. After GitHub Pages is enabled for `docs/`, paste `https://miss55.github.io/happy-tab/privacy-policy.html` into both store dashboards.
 
 ## Current Status
 

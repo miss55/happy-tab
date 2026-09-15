@@ -4,6 +4,15 @@
   "private": true,
   "license": "MIT",
   "author": "Jenson (https://github.com/miss55)",
+  "homepage": "https://github.com/miss55/happy-tab#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/miss55/happy-tab.git",
+    "directory": "apps/extension"
+  },
+  "bugs": {
+    "url": "https://github.com/miss55/happy-tab/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

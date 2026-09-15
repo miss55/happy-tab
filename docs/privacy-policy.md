@@ -4,8 +4,9 @@ Public HTML copy for store listings and GitHub Pages:
 
 - In-extension page: `apps/extension/public/privacy.html` (also copied into the built package)
 - Hostable copy: [privacy-policy.html](./privacy-policy.html)
+- Public HTTPS URL (GitHub Pages): [https://miss55.github.io/happy-tab/privacy-policy.html](https://miss55.github.io/happy-tab/privacy-policy.html)
 
-Chrome Web Store and Microsoft Edge Add-ons both need a **public HTTPS URL**. After this file is on the web (GitHub Pages, your site, or a gist rendered as HTML), paste that URL into both developer dashboards.
+Chrome Web Store and Microsoft Edge Add-ons both need that **public HTTPS URL**. Enable Pages for `docs/` on `main` if the URL is not live yet, then paste it into both developer dashboards.
 
 The policy states:
 

@@ -4,6 +4,14 @@
   "private": true,
   "license": "MIT",
   "author": "Jenson (https://github.com/miss55)",
+  "homepage": "https://github.com/miss55/happy-tab#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/miss55/happy-tab.git"
+  },
+  "bugs": {
+    "url": "https://github.com/miss55/happy-tab/issues"
+  },
   "description": "HappyTab monorepo",
   "packageManager": "pnpm@9.15.0",
   "scripts": {

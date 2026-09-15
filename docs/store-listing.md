@@ -4,17 +4,21 @@ HappyTab uses one Manifest V3 package for Chrome and Microsoft Edge. Zip the
 contents of `apps/extension/dist` (so `manifest.json` is at the zip root), not
 the `dist` folder itself.
 
-## After GitHub is public
+## GitHub and privacy policy URL
 
-These store steps cannot be finished in the repo. Do them after the GitHub
-repository (and GitHub Pages) exists:
+- Source: [https://github.com/miss55/happy-tab](https://github.com/miss55/happy-tab)
+- Privacy policy (GitHub Pages):
+  [https://miss55.github.io/happy-tab/privacy-policy.html](https://miss55.github.io/happy-tab/privacy-policy.html)
 
-1. Enable GitHub Pages for `docs/` (or host `docs/privacy-policy.html` on any
-   HTTPS site).
-2. Paste that live privacy URL into Chrome Web Store and Edge Add-ons.
-3. Load unpacked `apps/extension/dist` in Chrome and Edge, then capture real
+Enable Pages once: GitHub → Settings → Pages → Build and deployment → Deploy
+from a branch → `main` → `/docs`. Wait until the privacy URL returns HTTP 200.
+
+Then:
+
+1. Paste that live privacy URL into Chrome Web Store and Edge Add-ons.
+2. Load unpacked `apps/extension/dist` in Chrome and Edge, then capture real
    **1280×800** (or Edge 640×480) new-tab screenshots. Do not use mockups.
-4. Fill each store listing separately. Edge text must not sell HappyTab as a
+3. Fill each store listing separately. Edge text must not sell HappyTab as a
    Chrome-only extension. Use the drafts below.
 
 One zip of `apps/extension/dist` is enough for both stores. Do not build a
@@ -22,10 +26,11 @@ Chrome package and an Edge package.
 
 ## Package now vs store later
 
-Safe to push to GitHub now: source, icons, `privacy.html` in the extension,
-and this document.
+Already on GitHub: source, icons, `privacy.html` in the extension, and this
+document.
 
-Wait until Pages is live: privacy-policy URL, screenshots, dashboard forms.
+Wait until Pages is live before filling store dashboards: privacy-policy URL
+and real screenshots.
 
 ## Generated assets
 
@@ -76,7 +81,8 @@ provider CORS and do not need host permissions.
 - Privacy practices: the extension handles user data (open tab URLs, locally
   saved links/todos). It does **not** sell data. Remote storage happens only
   after the user enables sync, and only to a store they own or configure.
-- Privacy policy URL: the hosted `privacy-policy.html`.
+- Privacy policy URL:
+  `https://miss55.github.io/happy-tab/privacy-policy.html`
 - Disclose that install replaces the new tab page.
 - Do not describe HappyTab as a search engine or default-search replacement.
   The search box only filters open tabs.
@@ -134,6 +140,7 @@ Cloudflare KV、Upstash Redis 或自定义 HTTPS 接口。可以先加密再上�
 - [ ] Confirm install does **not** ask for api.cloudflare.com
 - [ ] Confirm Cloudflare test/sync prompts for that origin
 - [ ] Zip `dist` files, not the folder
-- [ ] Privacy policy URL is live HTTPS
+- [ ] Privacy policy URL is live HTTPS:
+      `https://miss55.github.io/happy-tab/privacy-policy.html`
 - [ ] Real 1280×800 screenshots of the current UI
 - [ ] Edge listing does not say “Chrome-only”

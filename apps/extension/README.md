@@ -2,6 +2,8 @@
 
 Chrome Manifest V3 new tab extension built with Vite, Vue 3, TypeScript, Pinia, and Dexie. The same package loads in Microsoft Edge.
 
+Source: [https://github.com/miss55/happy-tab](https://github.com/miss55/happy-tab)
+
 ## Current Local MVP
 
 - Overrides Chrome new tab with `chrome_url_overrides`.
