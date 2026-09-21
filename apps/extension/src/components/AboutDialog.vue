@@ -13,6 +13,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const version = getExtensionVersion();
+const githubUrl = "https://github.com/miss55/happy-tab";
 const privacyPolicyUrl =
   typeof chrome !== "undefined" && chrome.runtime?.getURL
     ? chrome.runtime.getURL("privacy.html")
@@ -20,6 +21,7 @@ const privacyPolicyUrl =
 </script>
 
 <template>
+  <Transition name="modal">
   <div v-if="open" class="modal-backdrop" @click.self="emit('close')">
     <section
       class="data-dialog about-dialog"
@@ -87,8 +89,15 @@ const privacyPolicyUrl =
         </button>
       </section>
 
-      <p class="about-dialog-footer">{{ t("about.version", { version }) }}</p>
+      <p class="about-dialog-footer">
+        <span>{{ t("about.version", { version }) }}</span>
+        <span class="about-dialog-footer-sep" aria-hidden="true">·</span>
+        <a :href="githubUrl" target="_blank" rel="noopener noreferrer">
+          {{ t("about.github") }}
+        </a>
+      </p>
       </div>
     </section>
   </div>
+  </Transition>
 </template>

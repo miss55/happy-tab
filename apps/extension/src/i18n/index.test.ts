@@ -82,11 +82,23 @@ describe("i18n", () => {
   });
 
   it("translates the about dialog, including the version line", () => {
-    expect(translateMessage("zh-CN", "about.openButton")).toBe("关于");
+    expect(translateMessage("en", "about.description")).toContain("bookmark manager");
+    expect(translateMessage("zh-CN", "about.description")).toContain("书签管理器");
+    expect(translateMessage("en", "about.description")).toContain("8 languages");
     expect(translateMessage("zh-CN", "about.privacyTitle")).toBe("我们不收集任何数据");
+    expect(translateMessage("zh-CN", "about.privacyBody")).toBe(
+      "HappyTab 不收集你的书签、待办或浏览内容。数据默认只留在这台电脑的浏览器里。"
+    );
+    expect(translateMessage("en", "about.privacyBody")).toBe(
+      "HappyTab does not collect your bookmarks, todos, or browsing content. By default, everything stays in this browser on this device."
+    );
+    expect(translateMessage("en", "about.privacyBody")).not.toMatch(/sync/i);
+    expect(translateMessage("zh-CN", "about.privacyBody")).not.toMatch(/同步/);
     expect(translateMessage("en", "about.privacyPolicy")).toBe("Read the full privacy policy");
     expect(translateMessage("zh-CN", "about.privacyPolicy")).toBe("阅读完整隐私政策");
     expect(translateMessage("zh-CN", "about.version", { version: "0.1.1" })).toBe("版本 0.1.1");
+    expect(translateMessage("en", "about.github")).toBe("View source on GitHub");
+    expect(translateMessage("zh-CN", "about.github")).toBe("在 GitHub 上查看源码");
     expect(translateMessage("en", "about.syncAction")).toBe("Open cloud sync");
     expect(translateMessage("en", "about.version", { version: "0.1.1" })).toBe("Version 0.1.1");
     expect(translateMessage("zh-CN", "common.confirm")).toBe("确认");

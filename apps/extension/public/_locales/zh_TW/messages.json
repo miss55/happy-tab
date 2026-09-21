@@ -1,8 +1,8 @@
 {
   "appName": {
-    "message": "HappyTab"
+    "message": "HappyTab - 書籤管理器"
   },
   "appDescription": {
-    "message": "以本機工作區取代新分頁：管理已開啟分頁、書籤和待辦。不必登入；可選同步到你自己的儲存空間。"
+    "message": "新分頁書籤管理器。本機分組、匯入匯出，或同步到你指定的第三方儲存。支援多語言，不必註冊。"
   }
 }

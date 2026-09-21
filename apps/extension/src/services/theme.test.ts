@@ -156,7 +156,8 @@ describe("theme", () => {
       "--theme-bg": "#f5f7fb",
       "--theme-surface": "#ffffff",
       "--theme-accent": "#2563eb",
-      "--theme-accent-contrast": "#ffffff"
+      "--theme-accent-contrast": "#ffffff",
+      "--theme-overlay": "rgba(15, 23, 42, 0.5)"
     });
   });
 

@@ -1,8 +1,8 @@
 {
   "appName": {
-    "message": "HappyTab"
+    "message": "HappyTab - 书签管理器"
   },
   "appDescription": {
-    "message": "用本地工作台替换新标签页：管理已打开标签、书签和待办。无需登录；可选同步到你自己的存储。"
+    "message": "新标签页书签管理器。本地分组、导入导出，或同步到你指定的第三方存储。支持多语言，无需注册。"
   }
 }

@@ -1,8 +1,8 @@
 {
   "appName": {
-    "message": "HappyTab"
+    "message": "HappyTab - Lesezeichen-Manager"
   },
   "appDescription": {
-    "message": "Ersetzt die neue Tab-Seite. Lokaler Bereich für Tabs, Lesezeichen und Aufgaben. Kein Login; optionaler Sync zum eigenen Speicher."
+    "message": "Lesezeichen-Manager für den neuen Tab. Lokal gruppieren, Import/Export oder Sync zum eigenen Speicher. 8 Sprachen, kein Konto."
   }
 }

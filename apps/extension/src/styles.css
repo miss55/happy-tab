@@ -15,7 +15,7 @@
   --theme-danger-soft: #fff0f2;
   --theme-success: #17603a;
   --theme-success-soft: #e8f7ee;
-  --theme-overlay: rgba(15, 23, 42, 0.42);
+  --theme-overlay: rgba(15, 23, 42, 0.5);
   --theme-topbar: rgba(255, 255, 255, 0.96);
   --theme-shadow: rgba(80, 100, 140, 0.14);
   --theme-radius-sm: 8px;
@@ -33,6 +33,7 @@
   --theme-scrollbar-thumb-hover: color-mix(in srgb, var(--theme-surface-text) 34%, transparent);
   --theme-glass-surface: color-mix(in srgb, var(--theme-surface) 92%, transparent);
   --theme-glass-surface-strong: color-mix(in srgb, var(--theme-surface) 96%, transparent);
+  --theme-glass-dialog: color-mix(in srgb, var(--theme-surface) 98%, transparent);
   --theme-glass-surface-soft: color-mix(in srgb, var(--theme-surface) 84%, transparent);
   --theme-glass-chrome: color-mix(in srgb, var(--theme-surface) 90%, transparent);
   --theme-glass-chrome-strong: color-mix(in srgb, var(--theme-surface) 94%, transparent);
@@ -117,6 +118,7 @@
   --theme-atmosphere: linear-gradient(160deg, #c9b6f2 0%, #6f8eb8 52%, #35557a 100%);
   --theme-glass-surface: color-mix(in srgb, var(--theme-surface) 78%, transparent);
   --theme-glass-surface-strong: color-mix(in srgb, var(--theme-surface) 88%, transparent);
+  --theme-glass-dialog: color-mix(in srgb, var(--theme-surface) 96%, transparent);
   --theme-glass-surface-soft: color-mix(in srgb, var(--theme-surface) 64%, transparent);
   --theme-glass-chrome: color-mix(in srgb, var(--theme-surface) 72%, transparent);
   --theme-glass-chrome-strong: color-mix(in srgb, var(--theme-surface) 82%, transparent);
@@ -141,6 +143,7 @@
   --theme-atmosphere: linear-gradient(160deg, #dce9f8 0%, #b7cce8 48%, #9bb6dc 100%);
   --theme-glass-surface: color-mix(in srgb, var(--theme-surface) 58%, transparent);
   --theme-glass-surface-strong: color-mix(in srgb, var(--theme-surface) 72%, transparent);
+  --theme-glass-dialog: color-mix(in srgb, var(--theme-surface) 94%, transparent);
   --theme-glass-surface-soft: color-mix(in srgb, var(--theme-surface) 46%, transparent);
   --theme-glass-chrome: color-mix(in srgb, var(--theme-surface) 64%, transparent);
   --theme-glass-chrome-strong: color-mix(in srgb, var(--theme-surface) 76%, transparent);
@@ -176,6 +179,7 @@
   --theme-floating-shadow: 0 0 0 1px var(--theme-border);
   --theme-glass-surface: #121212;
   --theme-glass-surface-strong: #161616;
+  --theme-glass-dialog: #161616;
   --theme-glass-surface-soft: #1a1a1a;
   --theme-glass-chrome: #000000;
   --theme-glass-chrome-strong: #0a0a0a;
@@ -215,6 +219,7 @@
     0 0 24px color-mix(in srgb, var(--theme-glow-color) calc(var(--theme-glow-strength) * 100%), transparent);
   --theme-glass-surface: color-mix(in srgb, #160824 72%, transparent);
   --theme-glass-surface-strong: color-mix(in srgb, #1b0a2c 82%, transparent);
+  --theme-glass-dialog: color-mix(in srgb, #1b0a2c 94%, transparent);
   --theme-glass-surface-soft: color-mix(in srgb, #221038 64%, transparent);
   --theme-glass-chrome: color-mix(in srgb, #120018 78%, transparent);
   --theme-glass-chrome-strong: color-mix(in srgb, #160824 86%, transparent);
@@ -276,6 +281,7 @@
   --theme-accent-contrast: #111827;
   --theme-glass-surface: color-mix(in srgb, var(--theme-surface) 42%, transparent);
   --theme-glass-surface-strong: color-mix(in srgb, var(--theme-surface) 56%, transparent);
+  --theme-glass-dialog: color-mix(in srgb, var(--theme-surface) 90%, transparent);
   --theme-glass-surface-soft: color-mix(in srgb, var(--theme-surface) 32%, transparent);
   --theme-glass-chrome: color-mix(in srgb, var(--theme-surface) 48%, transparent);
   --theme-glass-chrome-strong: color-mix(in srgb, var(--theme-surface) 62%, transparent);
@@ -396,6 +402,7 @@
   --theme-backdrop-filter: none;
   --theme-glass-surface: color-mix(in srgb, var(--theme-surface) 88%, transparent);
   --theme-glass-surface-strong: color-mix(in srgb, var(--theme-surface) 94%, transparent);
+  --theme-glass-dialog: color-mix(in srgb, var(--theme-surface) 98%, transparent);
   --theme-glass-chrome: color-mix(in srgb, var(--theme-surface) 92%, transparent);
   --theme-glass-chrome-strong: color-mix(in srgb, var(--theme-surface) 96%, transparent);
 }
@@ -705,8 +712,21 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .language-menu-popover,
   .bookmark-drag-status,
-  .save-feedback {
+  .save-feedback,
+  .modal-enter-active > section,
+  .modal-leave-active > section,
+  .saved-link-row.arriving,
+  .link-group.browser-tab-drop-target,
+  .link-group.link-drop-target,
+  .link-group.just-received {
     animation: none;
+  }
+
+  .bookmark-create-enter-active,
+  .bookmark-create-leave-active,
+  .modal-enter-active,
+  .modal-leave-active {
+    transition: none;
   }
 
   .language-menu-trigger svg,
@@ -837,8 +857,47 @@ h1 {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(15, 23, 42, 0.42);
-  backdrop-filter: blur(3px);
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(6px);
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity var(--theme-duration-normal) ease-out;
+}
+
+.modal-leave-active {
+  transition-duration: var(--theme-duration-fast);
+  transition-timing-function: ease-in;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-active > section {
+  animation: modal-dialog-enter var(--theme-duration-normal) ease-out;
+}
+
+.modal-leave-active > section {
+  animation: modal-dialog-leave var(--theme-duration-fast) ease-in;
+}
+
+@keyframes modal-dialog-enter {
+  from {
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-dialog-leave {
+  to {
+    transform: translateY(8px) scale(0.98);
+  }
 }
 
 .confirm-dialog-backdrop {
@@ -853,7 +912,7 @@ h1 {
   border: 1px solid color-mix(in srgb, var(--theme-border) 88%, transparent);
   border-radius: var(--theme-radius-lg);
   color: var(--theme-surface-text);
-  background: color-mix(in srgb, var(--theme-surface) 96%, transparent);
+  background: var(--theme-surface);
   box-shadow: 0 8px 28px color-mix(in srgb, var(--theme-shadow) 32%, transparent);
 }
 
@@ -1024,6 +1083,36 @@ h1 {
   background: #185942;
 }
 
+.workspace-toggle {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--theme-border);
+  border-radius: 999px;
+  color: var(--theme-surface-text);
+  background: var(--theme-surface);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.workspace-toggle.selected {
+  border-color: var(--theme-accent);
+  color: var(--theme-accent-strong);
+  background: var(--theme-accent-soft);
+}
+
+.workspace-toggle input {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  min-height: 16px;
+  margin: 0;
+  accent-color: var(--theme-accent);
+}
+
 .import-section {
   grid-template-columns: 1fr;
 }
@@ -1063,6 +1152,20 @@ h1 {
 
 .about-dialog-footer {
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.about-dialog a {
+  color: var(--theme-accent-strong);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.about-dialog a:hover {
+  text-decoration: underline;
 }
 
 .file-picker {
@@ -2362,7 +2465,8 @@ label.theme-custom-fields {
   pointer-events: auto;
 }
 
-.tab-action-button {
+.tab-action-button,
+.icon-action-button {
   width: 28px;
   height: 28px;
   display: inline-grid;
@@ -2379,31 +2483,47 @@ label.theme-custom-fields {
     background-color 120ms ease;
 }
 
-.tab-action-button svg {
+.tab-action-button svg,
+.icon-action-button svg {
   width: 16px;
   height: 16px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.tab-action-button:focus-visible {
+.icon-action-button svg.row-action-icon-fill {
+  fill: currentColor;
+  stroke: none;
+}
+
+.tab-action-button:focus-visible,
+.icon-action-button:focus-visible {
   outline: 2px solid var(--theme-accent);
   outline-offset: 1px;
 }
 
-.tab-save-button:hover {
+.tab-save-button:hover,
+.icon-action-button:hover {
   color: var(--theme-accent-strong);
   background: var(--theme-surface);
 }
 
-.tab-close-button:hover {
+.tab-close-button:hover,
+.icon-action-button.icon-action-danger:hover {
   color: var(--theme-danger);
   background: var(--theme-danger-soft);
 }
 
-.tab-action-button:disabled {
+.icon-action-button.drag-handle:hover {
+  color: var(--theme-surface-text);
+  background: var(--theme-surface-soft);
+}
+
+.tab-action-button:disabled,
+.icon-action-button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -2529,14 +2649,6 @@ label.theme-custom-fields {
 }
 
 .drag-handle {
-  min-height: 32px;
-  padding: 0 10px;
-  border: 1px dashed #aeb9c8;
-  border-radius: 8px;
-  color: #53606f;
-  background: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
   cursor: grab;
 }
 
@@ -2604,7 +2716,7 @@ label.theme-custom-fields {
   z-index: 10;
 }
 
-.bookmark-create-panel > summary {
+.bookmark-create-panel > .bookmark-create-trigger {
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -2618,18 +2730,17 @@ label.theme-custom-fields {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  list-style: none;
 }
 
 .bookmark-panel-label-open {
   display: none;
 }
 
-.bookmark-create-panel[open] .bookmark-panel-label-closed {
+.bookmark-create-panel.is-open .bookmark-panel-label-closed {
   display: none;
 }
 
-.bookmark-create-panel[open] .bookmark-panel-label-open {
+.bookmark-create-panel.is-open .bookmark-panel-label-open {
   display: inline;
 }
 
@@ -2642,18 +2753,14 @@ label.theme-custom-fields {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: transform 160ms ease;
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.bookmark-create-panel[open] .bookmark-panel-chevron {
+.bookmark-create-panel.is-open .bookmark-panel-chevron {
   transform: rotate(180deg);
 }
 
-.bookmark-create-panel > summary::-webkit-details-marker {
-  display: none;
-}
-
-.bookmark-create-panel[open] > summary {
+.bookmark-create-panel.is-open > .bookmark-create-trigger {
   border-color: #8ba8ff;
   color: var(--theme-accent-strong);
   background: var(--theme-accent-soft);
@@ -2672,6 +2779,25 @@ label.theme-custom-fields {
   border-radius: 10px;
   background: #ffffff;
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+  transform-origin: top right;
+}
+
+.bookmark-create-enter-active {
+  transition:
+    opacity 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bookmark-create-leave-active {
+  transition:
+    opacity 180ms ease-in,
+    transform 180ms ease-in;
+}
+
+.bookmark-create-enter-from,
+.bookmark-create-leave-to {
+  opacity: 0;
+  transform: translateY(-18px) scale(0.9);
 }
 
 .inline-form,
@@ -2776,8 +2902,11 @@ select:focus {
   border-color: transparent;
   border-radius: 10px;
   transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease;
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    outline-color 180ms ease,
+    opacity 180ms ease;
 }
 
 .link-group:hover,
@@ -2789,7 +2918,7 @@ select:focus {
 .link-group.browser-tab-drop-target {
   border-color: #2563eb;
   outline: 3px solid #dce7ff;
-  transform: translateY(-2px);
+  transform: translateY(-4px) scale(1.03);
 }
 
 .link-group.dragging,
@@ -2852,34 +2981,13 @@ select:focus {
 .edit-toggle-button {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-}
-
-.edit-toggle-button svg {
-  width: 13px;
-  height: 13px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  justify-content: center;
 }
 
 .edit-toggle-button.active {
-  border-color: var(--theme-accent) !important;
   color: var(--theme-accent-strong) !important;
   background: var(--theme-accent-soft) !important;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-accent) 15%, transparent);
-}
-
-.link-group-header .text-button,
-.link-group-header .danger-button,
-.link-group-header .drag-handle {
-  min-height: 27px;
-  padding: 0 7px;
-  border-color: rgba(255, 255, 255, 0.68);
-  background: rgba(255, 255, 255, 0.78);
-  font-size: 11px;
 }
 
 .saved-link-list {
@@ -3071,14 +3179,6 @@ select:focus {
   opacity: 1;
 }
 
-.todo-actions .text-button,
-.todo-actions .danger-button,
-.todo-actions .drag-handle {
-  min-height: 26px;
-  padding: 0 6px;
-  font-size: 10px;
-}
-
 .saved-link-content {
   position: relative;
   display: grid;
@@ -3135,13 +3235,6 @@ select:focus {
   padding-top: 52px;
 }
 
-.saved-link-actions .text-button,
-.saved-link-actions .danger-button {
-  min-height: 26px;
-  padding: 0 6px;
-  font-size: 10px;
-}
-
 .saved-link-favicon {
   flex: 0 0 auto;
 }
@@ -3185,6 +3278,12 @@ select:focus {
   border-radius: 7px;
   color: #8993a1;
   text-align: center;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Sync dialog styling */
@@ -3667,7 +3766,7 @@ body,
 .todo-row,
 .import-mode-list > label,
 .file-picker,
-.bookmark-create-panel > summary {
+.bookmark-create-panel > .bookmark-create-trigger {
   border-color: var(--theme-border);
   color: var(--theme-surface-text);
   background: var(--theme-surface);
@@ -3708,19 +3807,18 @@ select {
 
 input:focus,
 select:focus,
-.bookmark-create-panel[open] > summary,
+.bookmark-create-panel.is-open > .bookmark-create-trigger,
 .import-mode-list > label.selected {
   border-color: var(--theme-accent);
   outline-color: var(--theme-accent-soft);
 }
 
-.bookmark-create-panel[open] > summary {
+.bookmark-create-panel.is-open > .bookmark-create-trigger {
   box-shadow: 0 0 0 3px var(--theme-accent-soft);
 }
 
 .refresh-button,
 .text-button,
-.drag-handle,
 .todo-check {
   border-color: var(--theme-border);
   color: var(--theme-surface-text);
@@ -3856,7 +3954,7 @@ select:focus,
 }
 
 .file-picker,
-.bookmark-create-panel > summary,
+.bookmark-create-panel > .bookmark-create-trigger,
 .eyebrow,
 .pin-marker {
   color: var(--theme-accent-strong);
@@ -3920,12 +4018,12 @@ select:focus,
 .theme-accessibility-note,
 .theme-background-file,
 .theme-dialog-actions button,
-.bookmark-create-panel > summary,
+.bookmark-create-panel > .bookmark-create-trigger,
 .refresh-button,
 .text-button,
-.danger-button,
-.drag-handle,
 .close-button,
+.tab-action-button,
+.icon-action-button,
 input,
 select,
 .inline-form button,
@@ -3977,26 +4075,6 @@ select,
   color: var(--theme-surface-text);
 }
 
-.link-group-header .text-button,
-.link-group-header .danger-button,
-.link-group-header .drag-handle {
-  border-color: color-mix(in srgb, var(--theme-border) 78%, transparent);
-  color: var(--theme-surface-text);
-  background: color-mix(in srgb, var(--theme-surface) 88%, transparent);
-}
-
-.link-group-header .text-button:hover {
-  border-color: var(--theme-accent);
-  color: var(--theme-accent-strong);
-  background: var(--theme-surface);
-}
-
-.link-group-header .danger-button:hover {
-  border-color: var(--theme-danger);
-  color: var(--theme-danger);
-  background: var(--theme-danger-soft);
-}
-
 .link-groups {
   row-gap: var(--theme-group-row-gap);
   column-gap: var(--theme-group-column-gap);
@@ -4022,12 +4100,57 @@ select,
   transform: scale(0.985);
 }
 
+.link-groups.is-dragging-browser-tab .link-group:not(.browser-tab-drop-target):not(.todo-group) {
+  opacity: 0.62;
+}
+
 .link-group.link-drop-target,
 .link-group.browser-tab-drop-target {
+  z-index: 2;
   border-color: var(--theme-accent);
   outline: 3px solid var(--theme-accent-soft);
-  box-shadow: var(--theme-card-shadow);
-  transform: translateY(-3px);
+  box-shadow:
+    0 14px 34px color-mix(in srgb, var(--theme-accent) 22%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--theme-accent) 16%, transparent);
+  transform: translateY(-4px) scale(1.03);
+  animation: drop-target-pulse 1.05s ease-in-out infinite;
+}
+
+.link-group.just-received {
+  animation: group-receive 420ms ease-out;
+}
+
+@keyframes drop-target-pulse {
+  0%,
+  100% {
+    outline-offset: 0;
+    box-shadow:
+      0 14px 34px color-mix(in srgb, var(--theme-accent) 22%, transparent),
+      0 0 0 4px color-mix(in srgb, var(--theme-accent) 20%, transparent);
+  }
+
+  50% {
+    outline-offset: 7px;
+    box-shadow:
+      0 18px 40px color-mix(in srgb, var(--theme-accent) 28%, transparent),
+      0 0 0 10px color-mix(in srgb, var(--theme-accent) 8%, transparent);
+  }
+}
+
+@keyframes group-receive {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--theme-accent) 28%, transparent);
+  }
+
+  45% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--theme-accent) 12%, transparent);
+    transform: translateY(-2px) scale(1.015);
+  }
+
+  100% {
+    box-shadow: 0 8px 24px var(--theme-shadow);
+    transform: none;
+  }
 }
 
 .link-group.group-drop-before,
@@ -4068,6 +4191,22 @@ select,
     background-color 120ms ease;
 }
 
+.saved-link-row.arriving {
+  animation: saved-link-arrive 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes saved-link-arrive {
+  from {
+    opacity: 0;
+    transform: translateX(-18px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .saved-link-row.drop-before::before,
 .saved-link-row.drop-after::after {
   content: "";
@@ -4100,6 +4239,7 @@ select,
   color: var(--theme-accent-strong);
   background: var(--theme-accent-soft);
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--theme-accent) 18%, transparent);
+  transform: scale(1.02);
 }
 
 .bookmark-drag-status {
@@ -4166,7 +4306,6 @@ select,
 .topbar-actions > .refresh-button:hover {
   background: var(--theme-surface-soft);
   box-shadow: 0 3px 9px color-mix(in srgb, var(--theme-shadow) 42%, transparent);
-  transform: translateY(-1px);
 }
 
 .group-drop-hint {
@@ -4298,7 +4437,7 @@ select,
   :root[data-theme-surface="neon"]
 ) .confirm-dialog {
   border-color: var(--theme-glass-border);
-  background: var(--theme-glass-surface-strong);
+  background: var(--theme-glass-dialog);
   box-shadow:
     inset 0 1px 0 var(--theme-glass-highlight),
     var(--theme-glass-card-shadow);
@@ -4433,12 +4572,7 @@ select,
   :root[data-theme-surface="glass"],
   :root[data-theme-surface="acrylic"],
   :root[data-theme-surface="neon"]
-) .drag-handle,
-:is(
-  :root[data-theme-surface="glass"],
-  :root[data-theme-surface="acrylic"],
-  :root[data-theme-surface="neon"]
-) .bookmark-create-panel > summary {
+) .bookmark-create-panel > .bookmark-create-trigger {
   border-color: var(--theme-glass-border);
   background: var(--theme-glass-surface-strong);
   box-shadow: inset 0 1px 0 var(--theme-glass-highlight);
@@ -4461,7 +4595,7 @@ select,
   :root[data-theme-surface="glass"],
   :root[data-theme-surface="acrylic"],
   :root[data-theme-surface="neon"]
-) .bookmark-create-panel[open] > summary {
+) .bookmark-create-panel.is-open > .bookmark-create-trigger {
   border-color: var(--theme-accent);
   background: color-mix(in srgb, var(--theme-accent-soft) 78%, transparent);
 }
@@ -4617,14 +4751,6 @@ select,
   border-color: var(--theme-glass-border);
   background: var(--theme-glass-surface-strong);
   box-shadow: inset 0 1px 0 var(--theme-glass-highlight);
-}
-
-:is(
-  :root[data-theme-surface="glass"],
-  :root[data-theme-surface="acrylic"],
-  :root[data-theme-surface="neon"]
-) .modal-backdrop {
-  background: color-mix(in srgb, var(--theme-overlay) 78%, transparent);
 }
 
 :root[data-theme-style="minimal"] .link-group {
@@ -4882,8 +5008,21 @@ select,
 
 @media (prefers-reduced-motion: reduce) {
   .bookmark-drag-status,
-  .save-feedback {
+  .save-feedback,
+  .modal-enter-active > section,
+  .modal-leave-active > section,
+  .saved-link-row.arriving,
+  .link-group.browser-tab-drop-target,
+  .link-group.link-drop-target,
+  .link-group.just-received {
     animation: none;
+  }
+
+  .bookmark-create-enter-active,
+  .bookmark-create-leave-active,
+  .modal-enter-active,
+  .modal-leave-active {
+    transition: none;
   }
 
   .link-group,

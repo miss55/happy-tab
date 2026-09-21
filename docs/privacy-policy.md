@@ -10,6 +10,8 @@ Chrome Web Store and Microsoft Edge Add-ons both need that **public HTTPS URL**.
 
 The policy states:
 
+- HappyTab is a bookmark manager that replaces the new tab page. It does not
+  read, replace, or sync the browser’s built-in bookmarks.
 - HappyTab has no first-party backend and does not collect user data.
 - `tabs` is used only for currently open tabs (title and URL), shown locally and saved locally if the user chooses.
 - Sync is opt-in and goes only to storage the user configures. Snapshots include bookmarks, todos, and usage stats (including locally deleted records for cross-device consistency). They do not include open tabs, wallpaper, theme, credentials, or browser identity.

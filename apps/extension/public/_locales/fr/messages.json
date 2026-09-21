@@ -1,8 +1,8 @@
 {
   "appName": {
-    "message": "HappyTab"
+    "message": "HappyTab - Gestionnaire de favoris"
   },
   "appDescription": {
-    "message": "Remplace le nouvel onglet par un espace local pour onglets, favoris et tâches. Sans compte ; sync optionnelle vers votre stockage."
+    "message": "Gestionnaire de favoris dans le nouvel onglet. Groupes locaux, import/export, ou sync vers votre stockage. 8 langues, sans compte."
   }
 }

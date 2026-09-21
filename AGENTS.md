@@ -2,7 +2,7 @@
 
 You are working on HappyTab, a pnpm workspace whose product is a Chrome Manifest V3 extension.
 
-HappyTab replaces the browser new tab page. It shows current browser tabs grouped by Chrome windows, allows users to save tabs as custom links, organize links into draggable groups, track link open counts, manage a local todo list, and optionally sync a snapshot to user-owned third-party storage.
+HappyTab is a bookmark manager that replaces the browser new tab page. It shows current browser tabs grouped by windows, lets users save tabs as custom links, organize links into draggable groups, track link open counts, manage a local todo list, import/export a local backup, and optionally sync a snapshot to user-owned third-party storage. The UI supports multiple languages. HappyTab bookmarks are independent of the browser bookmark bar.
 
 ## Repository Structure
 
@@ -62,6 +62,7 @@ Use chrome.storage.local only for lightweight settings:
 - theme settings
 - last sync time
 - language preference
+- workspace flags such as whether the todo list is shown
 
 ## Coding Rules
 

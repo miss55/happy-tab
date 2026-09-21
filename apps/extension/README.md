@@ -1,6 +1,6 @@
 # HappyTab Extension
 
-Chrome Manifest V3 new tab extension built with Vite, Vue 3, TypeScript, Pinia, and Dexie. The same package loads in Microsoft Edge.
+Manifest V3 new tab bookmark manager built with Vite, Vue 3, TypeScript, Pinia, and Dexie. The same package loads in Google Chrome and Microsoft Edge. The UI is available in 8 languages. HappyTab stores its own bookmark groups; it does not replace the browser bookmark bar.
 
 Source: [https://github.com/miss55/happy-tab](https://github.com/miss55/happy-tab)
 
@@ -16,6 +16,7 @@ Source: [https://github.com/miss55/happy-tab](https://github.com/miss55/happy-ta
 - Supports SavedLink sorting within a group and across groups.
 - Tracks Link `open_count` and `last_opened_at`.
 - Creates, edits, completes, deletes, and drag-sorts Todos.
+- Hides the todo list by default; it can be turned on in Import / Export.
 - Persists Todo `sort_order`.
 - Persists business data in IndexedDB through Dexie.
 - Supports English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, and German UI; initially follows the browser language, and remembers manual language changes locally.
@@ -90,7 +91,8 @@ Expected behavior:
 - Theme changes apply immediately, survive refresh, and can be reset to system mode.
 - Clicking a Browser Tab switches to it.
 - Closing a Browser Tab removes it from Chrome and the list.
-- Saved Links and Todos persist after refreshing the new tab page.
+- Saved Links persist after refreshing the new tab page.
+- Todos stay hidden until enabled in Import / Export, then persist after refresh.
 - Dragging Link Groups, SavedLinks, and Todos updates their persisted order.
 - Local tabs, links, and todos work without login.
 

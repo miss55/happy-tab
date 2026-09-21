@@ -1,6 +1,6 @@
 # HappyTab Architecture
 
-HappyTab is a local-first Chrome extension. It must work without login. Cloud sync is optional and uses user-owned third-party storage.
+HappyTab is a local-first bookmark manager that replaces the new tab page. It must work without login. Cloud sync is optional and uses user-owned third-party storage. HappyTab bookmarks are independent of the browser bookmark bar.
 
 ## Layout
 
@@ -64,6 +64,7 @@ Use `chrome.storage.local` only for lightweight settings:
 - theme settings
 - last sync time
 - language preference
+- workspace flags such as whether the todo list is shown
 
 ## Domain Terms
 

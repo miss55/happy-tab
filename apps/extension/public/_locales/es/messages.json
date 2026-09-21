@@ -1,8 +1,8 @@
 {
   "appName": {
-    "message": "HappyTab"
+    "message": "HappyTab - Gestor de marcadores"
   },
   "appDescription": {
-    "message": "Sustituye la nueva pestaña por un espacio local para pestañas, marcadores y tareas. Sin login; sync opcional a tu almacenamiento."
+    "message": "Gestor de marcadores en la nueva pestaña. Agrupa en local, importa/exporta o sincroniza a tu almacenamiento. 8 idiomas, sin cuenta."
   }
 }

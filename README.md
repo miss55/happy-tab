@@ -1,8 +1,10 @@
 # HappyTab
 
-HappyTab is a local-first Manifest V3 extension that replaces the browser new tab page.
+HappyTab is a bookmark manager that replaces the browser new tab page.
 
-This repository is a pnpm workspace. The product is the Chrome extension in `apps/extension`. Cloud sync uses user-owned third-party storage; there is no first-party backend.
+Save and group links locally, import or export a JSON backup, or optionally sync a snapshot to storage you already own. The extension is local-first: no login and no first-party backend. The UI is available in English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, and German.
+
+This repository is a pnpm workspace. The product is the Manifest V3 extension in `apps/extension`. Cloud sync uses user-owned third-party storage; there is no first-party backend. HappyTab bookmarks live on the new tab page and do not replace the browser’s built-in bookmark bar.
 
 - Source: [https://github.com/miss55/happy-tab](https://github.com/miss55/happy-tab)
 - Issues: [https://github.com/miss55/happy-tab/issues](https://github.com/miss55/happy-tab/issues)

@@ -388,7 +388,7 @@ export const buildCustomThemeVariables = (colors: CustomThemeColors) => {
     "--theme-danger-soft": mixColors(danger, colors.surface, 0.84),
     "--theme-success": success,
     "--theme-success-soft": mixColors(success, colors.surface, 0.84),
-    "--theme-overlay": isDark ? "rgba(2, 6, 23, 0.72)" : "rgba(15, 23, 42, 0.42)",
+    "--theme-overlay": isDark ? "rgba(2, 6, 23, 0.72)" : "rgba(15, 23, 42, 0.5)",
     "--theme-topbar": `${colors.surface}f2`,
     "--theme-shadow": isDark ? "rgba(0, 0, 0, 0.36)" : "rgba(15, 23, 42, 0.14)"
   } as const;

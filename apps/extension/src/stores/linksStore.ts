@@ -85,7 +85,7 @@ export const useLinksStore = defineStore("links", {
     },
 
     async saveBrowserTab(tab: BrowserTab, groupId: string) {
-      await this.addLink(browserTabToLinkInput(tab, groupId));
+      return this.addLink(browserTabToLinkInput(tab, groupId));
     },
 
     async renameGroup(groupId: string, name: string) {

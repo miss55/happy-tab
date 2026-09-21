@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import FaviconImage from "@/components/FaviconImage.vue";
+import RowActionIcon from "@/components/RowActionIcon.vue";
 import JsonBinSetupGuide from "@/components/JsonBinSetupGuide.vue";
 import GistSetupGuide from "@/components/GistSetupGuide.vue";
 import UpstashSetupGuide from "@/components/UpstashSetupGuide.vue";
@@ -20,6 +21,7 @@ import {
   restoreHappyTabBackup
 } from "@/services/dataPortability";
 import { useTheme } from "@/services/theme";
+import { useWorkspaceSettings } from "@/services/workspaceSettings";
 import { builtInWallpapers } from "@/services/themePresets";
 import { useI18n, type SupportedLocale, type TranslationParams } from "@/i18n";
 import type { MessageKey } from "@/i18n/messages";
@@ -68,6 +70,7 @@ const {
   removeThemeBackgroundImage,
   resetTheme
 } = useTheme();
+const { settings: workspaceSettings, setShowTodos } = useWorkspaceSettings();
 const {
   config: syncConfig,
   isSyncing,
@@ -94,6 +97,7 @@ const windowGroups = ref<BrowserWindowGroup[]>([]);
 const isTabsLoading = ref(true);
 const tabsErrorMessage = ref<MessageKey | "">("");
 const localeErrorMessage = ref("");
+const workspaceErrorMessage = ref("");
 const selectedGroupId = ref("");
 const newGroupName = ref("");
 const linkForm = reactive({
@@ -248,6 +252,28 @@ const closeTodoDialog = () => {
   isTodoDialogOpen.value = false;
   newTodoTitle.value = "";
 };
+
+const changeShowTodos = async (event: Event) => {
+  const target = event.target;
+
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  workspaceErrorMessage.value = "";
+
+  try {
+    await setShowTodos(target.checked);
+
+    if (!target.checked) {
+      closeTodoDialog();
+    }
+  } catch {
+    workspaceErrorMessage.value = t("error.saveWorkspace");
+    target.checked = workspaceSettings.value.showTodos;
+  }
+};
+
 const themeErrorKey = ref<MessageKey | null>(null);
 const isThemeBackgroundBusy = ref(false);
 const isDataTransferBusy = ref(false);
@@ -491,14 +517,47 @@ const showSavedTabFeedback = (title: string, group: string) => {
   }, SAVED_TAB_FEEDBACK_DURATION_MS);
 };
 
+const arrivingLinkId = ref("");
+const receivedGroupId = ref("");
+let arrivingLinkTimer = 0;
+let receivedGroupTimer = 0;
+
+const clearDropArrivalFeedback = () => {
+  window.clearTimeout(arrivingLinkTimer);
+  window.clearTimeout(receivedGroupTimer);
+  arrivingLinkTimer = 0;
+  receivedGroupTimer = 0;
+  arrivingLinkId.value = "";
+  receivedGroupId.value = "";
+};
+
+const markDroppedBookmark = (linkId: string, groupId: string) => {
+  window.clearTimeout(arrivingLinkTimer);
+  window.clearTimeout(receivedGroupTimer);
+  arrivingLinkId.value = linkId;
+  receivedGroupId.value = groupId;
+  arrivingLinkTimer = window.setTimeout(() => {
+    arrivingLinkId.value = "";
+    arrivingLinkTimer = 0;
+  }, 420);
+  receivedGroupTimer = window.setTimeout(() => {
+    receivedGroupId.value = "";
+    receivedGroupTimer = 0;
+  }, 420);
+};
+
 const saveBrowserTabToGroup = async (tab: BrowserTab, groupId: string) => {
   if (!groupId || !tab.url.trim()) {
     return;
   }
 
   clearSavedTabFeedback();
-  await linksStore.saveBrowserTab(tab, groupId);
+  const link = await linksStore.saveBrowserTab(tab, groupId);
   selectedGroupId.value = groupId;
+
+  if (link) {
+    markDroppedBookmark(link.id, groupId);
+  }
 
   const groupName = linkGroups.value.find((group) => group.id === groupId)?.name || t("common.group");
   showSavedTabFeedback(tab.title, groupName);
@@ -1312,6 +1371,42 @@ const changeLocale = async (nextLocale: SupportedLocale) => {
   }
 };
 
+const isBookmarkCreateOpen = ref(false);
+const bookmarkCreatePanel = ref<HTMLElement | null>(null);
+
+const closeBookmarkCreatePanel = () => {
+  isBookmarkCreateOpen.value = false;
+};
+
+const toggleBookmarkCreatePanel = () => {
+  isBookmarkCreateOpen.value = !isBookmarkCreateOpen.value;
+};
+
+const closeBookmarkCreateOnOutsidePointer = (event: PointerEvent) => {
+  if (!bookmarkCreatePanel.value?.contains(event.target as Node)) {
+    closeBookmarkCreatePanel();
+  }
+};
+
+const closeBookmarkCreateOnEscape = (event: KeyboardEvent) => {
+  if (event.key !== "Escape" || !isBookmarkCreateOpen.value) {
+    return;
+  }
+
+  if (
+    isTodoDialogOpen.value ||
+    isSyncPanelOpen.value ||
+    isThemePanelOpen.value ||
+    isDataPanelOpen.value ||
+    isAboutPanelOpen.value ||
+    confirmRequest.value
+  ) {
+    return;
+  }
+
+  closeBookmarkCreatePanel();
+};
+
 watch(
   defaultGroupId,
   (groupId) => {
@@ -1328,11 +1423,16 @@ onMounted(() => {
   void todosStore.loadTodos();
   void syncStore.loadConfig();
   document.addEventListener("visibilitychange", refreshBrowserTabsWhenVisible);
+  document.addEventListener("pointerdown", closeBookmarkCreateOnOutsidePointer);
+  document.addEventListener("keydown", closeBookmarkCreateOnEscape);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("visibilitychange", refreshBrowserTabsWhenVisible);
+  document.removeEventListener("pointerdown", closeBookmarkCreateOnOutsidePointer);
+  document.removeEventListener("keydown", closeBookmarkCreateOnEscape);
   window.clearTimeout(savedTabFeedbackTimer);
+  clearDropArrivalFeedback();
   resolveConfirmRequest(false);
 });
 </script>
@@ -1406,6 +1506,7 @@ onBeforeUnmount(() => {
       @open-sync="openSyncFromAbout"
     />
 
+    <Transition name="modal">
     <div v-if="isTodoDialogOpen" class="modal-backdrop" @click.self="closeTodoDialog">
       <section
         class="data-dialog todo-dialog"
@@ -1453,7 +1554,9 @@ onBeforeUnmount(() => {
         </div>
       </section>
     </div>
+    </Transition>
 
+    <Transition name="modal">
     <div v-if="isSyncPanelOpen" class="modal-backdrop" @click.self="closeSyncPanel">
       <section
         class="data-dialog sync-dialog"
@@ -1665,7 +1768,9 @@ onBeforeUnmount(() => {
         </div>
       </section>
     </div>
+    </Transition>
 
+    <Transition name="modal">
     <div v-if="isThemePanelOpen" class="modal-backdrop" @click.self="closeThemePanel">
       <section
         class="data-dialog theme-dialog"
@@ -1951,7 +2056,9 @@ onBeforeUnmount(() => {
         </div>
       </section>
     </div>
+    </Transition>
 
+    <Transition name="modal">
     <div v-if="isDataPanelOpen" class="modal-backdrop" @click.self="closeDataPanel">
       <section
         class="data-dialog"
@@ -1977,6 +2084,21 @@ onBeforeUnmount(() => {
         </header>
 
         <div class="data-dialog-body">
+        <section class="data-dialog-section">
+          <div>
+            <h3>{{ t("todos.title") }}</h3>
+            <p>{{ t("todos.showOnNewTabDescription") }}</p>
+          </div>
+          <label class="workspace-toggle" :class="{ selected: workspaceSettings.showTodos }">
+            <input
+              type="checkbox"
+              :checked="workspaceSettings.showTodos"
+              @change="changeShowTodos"
+            />
+            {{ t("todos.showOnNewTab") }}
+          </label>
+        </section>
+
         <section class="data-dialog-section">
           <div>
             <h3>{{ t("data.exportTitle") }}</h3>
@@ -2048,13 +2170,15 @@ onBeforeUnmount(() => {
         </div>
       </section>
     </div>
+    </Transition>
 
     <section class="status-row" aria-live="polite">
-      <span v-if="isTabsLoading || isLinksLoading || isTodosLoading">{{ t("status.loadingWorkspace") }}</span>
+      <span v-if="isTabsLoading || isLinksLoading || (workspaceSettings.showTodos && isTodosLoading)">{{ t("status.loadingWorkspace") }}</span>
       <span v-if="tabsErrorMessage" class="error-text">{{ t(tabsErrorMessage) }}</span>
       <span v-if="linksErrorMessage" class="error-text">{{ t(linksErrorMessage) }}</span>
-      <span v-if="todosErrorMessage" class="error-text">{{ t(todosErrorMessage) }}</span>
+      <span v-if="workspaceSettings.showTodos && todosErrorMessage" class="error-text">{{ t(todosErrorMessage) }}</span>
       <span v-if="localeErrorMessage" class="error-text">{{ localeErrorMessage }}</span>
+      <span v-if="workspaceErrorMessage" class="error-text">{{ workspaceErrorMessage }}</span>
     </section>
 
     <section class="workspace-grid">
@@ -2142,9 +2266,7 @@ onBeforeUnmount(() => {
                     :disabled="!tab.url"
                     @click="saveTabAsLink(tab)"
                   >
-                    <svg aria-hidden="true" viewBox="0 0 20 20">
-                      <path d="M10 4v12M4 10h12" />
-                    </svg>
+                    <RowActionIcon name="plus" />
                   </button>
                   <button
                     class="tab-action-button tab-close-button"
@@ -2153,9 +2275,7 @@ onBeforeUnmount(() => {
                     :aria-label="t('tabs.closeAria', { title: tab.title })"
                     @click="removeTab(tab)"
                   >
-                    <svg aria-hidden="true" viewBox="0 0 20 20">
-                      <path d="m5 5 10 10M15 5 5 15" />
-                    </svg>
+                    <RowActionIcon name="close" />
                   </button>
                 </div>
               </li>
@@ -2176,8 +2296,18 @@ onBeforeUnmount(() => {
           </div>
         </header>
 
-        <details class="bookmark-create-panel">
-          <summary>
+        <div
+          ref="bookmarkCreatePanel"
+          class="bookmark-create-panel"
+          :class="{ 'is-open': isBookmarkCreateOpen }"
+        >
+          <button
+            class="bookmark-create-trigger"
+            type="button"
+            :aria-expanded="isBookmarkCreateOpen"
+            aria-controls="bookmark-create-content"
+            @click="toggleBookmarkCreatePanel"
+          >
             <span class="bookmark-panel-label bookmark-panel-label-closed">
               {{ t("bookmarks.addPanel") }}
             </span>
@@ -2187,8 +2317,13 @@ onBeforeUnmount(() => {
             <svg class="bookmark-panel-chevron" aria-hidden="true" viewBox="0 0 20 20">
               <path d="m5 8 5 5 5-5" />
             </svg>
-          </summary>
-          <div class="bookmark-create-content">
+          </button>
+          <Transition name="bookmark-create">
+            <div
+              v-if="isBookmarkCreateOpen"
+              id="bookmark-create-content"
+              class="bookmark-create-content"
+            >
             <form class="inline-form" @submit.prevent="addLinkGroup">
               <label for="group-name">{{ t("bookmarks.newGroup") }}</label>
               <div class="form-row">
@@ -2224,7 +2359,8 @@ onBeforeUnmount(() => {
               <button type="submit">{{ t("bookmarks.addLink") }}</button>
             </form>
           </div>
-        </details>
+          </Transition>
+        </div>
 
         <section
           class="link-groups"
@@ -2234,15 +2370,21 @@ onBeforeUnmount(() => {
             'is-dragging-browser-tab': Boolean(draggingBrowserTab)
           }"
         >
-          <article class="link-group todo-group">
+          <article v-if="workspaceSettings.showTodos" class="link-group todo-group">
             <header class="link-group-header">
               <div class="link-group-heading">
                 <h3>{{ t("todos.title") }}</h3>
                 <span>{{ t("todos.summary", { open: activeTodoCount, done: completedTodoCount }) }}</span>
               </div>
               <div class="row-actions">
-                <button class="text-button" type="button" @click="openTodoDialog">
-                  {{ t("todos.newTodo") }}
+                <button
+                  class="icon-action-button"
+                  type="button"
+                  :title="t('todos.newTodo')"
+                  :aria-label="t('todos.newTodo')"
+                  @click="openTodoDialog"
+                >
+                  <RowActionIcon name="plus" />
                 </button>
               </div>
             </header>
@@ -2297,14 +2439,31 @@ onBeforeUnmount(() => {
                   </div>
 
                   <div class="row-actions todo-actions">
-                    <button class="drag-handle" type="button" :title="t('todos.dragTodo')">
-                      {{ t("common.drag") }}
+                    <button
+                      class="icon-action-button drag-handle"
+                      type="button"
+                      :title="t('todos.dragTodo')"
+                      :aria-label="t('todos.dragTodo')"
+                    >
+                      <RowActionIcon name="grip" />
                     </button>
-                    <button class="text-button" type="button" @click="startEditingTodo(todo)">
-                      {{ t("common.edit") }}
+                    <button
+                      class="icon-action-button"
+                      type="button"
+                      :title="t('common.edit')"
+                      :aria-label="t('common.edit')"
+                      @click="startEditingTodo(todo)"
+                    >
+                      <RowActionIcon name="pencil" />
                     </button>
-                    <button class="danger-button" type="button" @click="deleteTodo(todo)">
-                      {{ t("common.delete") }}
+                    <button
+                      class="icon-action-button icon-action-danger"
+                      type="button"
+                      :title="t('common.delete')"
+                      :aria-label="t('common.delete')"
+                      @click="deleteTodo(todo)"
+                    >
+                      <RowActionIcon name="trash" />
                     </button>
                   </div>
                 </div>
@@ -2322,6 +2481,7 @@ onBeforeUnmount(() => {
               selected: activeGroupId === group.id,
               'browser-tab-drop-target': browserTabDropGroupId === group.id,
               'link-drop-target': linkDropTarget?.groupId === group.id,
+              'just-received': receivedGroupId === group.id,
               'group-drop-before':
                 groupDropTarget?.groupId === group.id && groupDropTarget.placement === 'before',
               'group-drop-after':
@@ -2338,7 +2498,7 @@ onBeforeUnmount(() => {
               </div>
               <div class="row-actions">
                 <button
-                  class="drag-handle"
+                  class="icon-action-button drag-handle"
                   type="button"
                   draggable="true"
                   :title="t('bookmarks.dragGroup')"
@@ -2346,27 +2506,27 @@ onBeforeUnmount(() => {
                   @dragstart.stop="startGroupDrag($event, group)"
                   @dragend="endGroupDrag"
                 >
-                  {{ t("common.drag") }}
+                  <RowActionIcon name="grip" />
                 </button>
                 <button
-                  class="text-button edit-toggle-button"
+                  class="icon-action-button edit-toggle-button"
                   type="button"
                   :class="{ active: editingGroupId === group.id }"
                   :aria-expanded="editingGroupId === group.id"
                   :title="t(editingGroupId === group.id ? 'common.collapse' : 'common.edit')"
+                  :aria-label="t(editingGroupId === group.id ? 'common.collapse' : 'common.edit')"
                   @click="toggleEditingGroup(group)"
                 >
-                  <svg aria-hidden="true" viewBox="0 0 20 20">
-                    <path
-                      v-if="editingGroupId === group.id"
-                      d="m5 12 5-5 5 5"
-                    />
-                    <path v-else d="M4 14.5V16h1.5L14.8 6.7l-1.5-1.5L4 14.5ZM12.6 5.9l1.5 1.5" />
-                  </svg>
-                  {{ t(editingGroupId === group.id ? "common.collapse" : "common.edit") }}
+                  <RowActionIcon name="pencil" />
                 </button>
-                <button class="danger-button" type="button" @click="deleteGroup(group)">
-                  {{ t("common.delete") }}
+                <button
+                  class="icon-action-button icon-action-danger"
+                  type="button"
+                  :title="t('common.delete')"
+                  :aria-label="t('common.delete')"
+                  @click="deleteGroup(group)"
+                >
+                  <RowActionIcon name="trash" />
                 </button>
               </div>
             </header>
@@ -2395,6 +2555,7 @@ onBeforeUnmount(() => {
                 :class="{
                   dragging: draggingLink?.linkId === link.id,
                   editing: editingLinkId === link.id,
+                  arriving: arrivingLinkId === link.id,
                   'drop-before':
                     linkDropTarget?.groupId === group.id &&
                     linkDropTarget.linkId === link.id &&
@@ -2473,26 +2634,25 @@ onBeforeUnmount(() => {
 
                 <div class="row-actions saved-link-actions">
                   <button
-                    class="text-button edit-toggle-button"
+                    class="icon-action-button edit-toggle-button"
                     type="button"
                     :class="{ active: editingLinkId === link.id }"
                     :aria-expanded="editingLinkId === link.id"
                     :title="t(editingLinkId === link.id ? 'common.collapse' : 'common.edit')"
+                    :aria-label="t(editingLinkId === link.id ? 'common.collapse' : 'common.edit')"
                     @click="toggleEditingLink(link)"
                   >
-                    <svg aria-hidden="true" viewBox="0 0 20 20">
-                      <path v-if="editingLinkId === link.id" d="m5 12 5-5 5 5" />
-                      <path v-else d="M4 14.5V16h1.5L14.8 6.7l-1.5-1.5L4 14.5ZM12.6 5.9l1.5 1.5" />
-                    </svg>
-                    {{ t(editingLinkId === link.id ? "common.collapse" : "common.edit") }}
+                    <RowActionIcon name="pencil" />
                   </button>
                   <button
                     v-if="editingLinkId !== link.id"
-                    class="danger-button"
+                    class="icon-action-button icon-action-danger"
                     type="button"
+                    :title="t('common.delete')"
+                    :aria-label="t('common.delete')"
                     @click="deleteLink(link)"
                   >
-                    {{ t("common.delete") }}
+                    <RowActionIcon name="trash" />
                   </button>
                 </div>
               </li>
@@ -2501,7 +2661,10 @@ onBeforeUnmount(() => {
             <p
               v-else
               class="muted-text group-drop-hint"
-              :class="{ active: linkDropTarget?.groupId === group.id }"
+              :class="{
+                active:
+                  linkDropTarget?.groupId === group.id || browserTabDropGroupId === group.id
+              }"
               @dragover="handleLinkListDragOver($event, group)"
               @drop.stop="dropOnGroupContent($event, group)"
             >

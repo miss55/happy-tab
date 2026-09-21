@@ -75,8 +75,13 @@ provider CORS and do not need host permissions.
 ## Chrome Web Store
 
 - One-time developer registration fee.
+- Localized name comes from `_locales/*/messages.json` (`appName`, max 45
+  characters). Use `HappyTab - Bookmark Manager` (or the locale equivalent)
+  so store search can match bookmark queries; do not drop the HappyTab brand.
 - Short description comes from `_locales/*/messages.json` (`appDescription`,
-  max 132 characters).
+  max 132 characters). Lead with bookmark manager on the new tab page, then
+  local import/export, optional user-owned sync, and languages. Do not claim
+  the browser’s built-in bookmarks or a first-party account.
 - Category: Productivity.
 - Privacy practices: the extension handles user data (open tab URLs, locally
   saved links/todos). It does **not** sell data. Remote storage happens only
@@ -89,9 +94,11 @@ provider CORS and do not need host permissions.
 
 ### Single purpose
 
-HappyTab is a local-first new tab workspace: open tabs, user-managed bookmark
-groups, and a small todo list. Keep the listing focused on that workspace. Do
-not add unrelated search, shopping, or coupon claims.
+HappyTab is a bookmark manager on the new tab page. Open tabs are how users
+save and switch to pages; a small todo list stays on the same page. Keep the
+listing focused on bookmarks, local backup, and optional user-owned sync. Do
+not add unrelated search, shopping, or coupon claims. Do not describe HappyTab
+as the browser’s built-in bookmark bar.
 
 ## Microsoft Edge Add-ons
 
@@ -108,30 +115,42 @@ You may load the same unpacked `apps/extension/dist` in Edge at
 
 ## Suggested English listing (Edge long description)
 
-HappyTab replaces the new tab page with a local-first workspace. See the tabs
-already open in each window, switch or close them, and save the ones you want
-as bookmarks you organize into groups. A small todo list stays on the same
-page.
+HappyTab is a bookmark manager on the new tab page. Save pages into groups you
+control, drag to reorder, and open them from the same page. Open tabs appear
+alongside so you can switch, close, or save them as bookmarks.
 
-Nothing is uploaded unless you turn on sync. If you do, HappyTab sends a
-snapshot to storage you already own: JSONBin, GitHub Gist, Cloudflare KV,
-Upstash Redis, or a custom HTTPS endpoint. You can encrypt that snapshot first.
-HappyTab does not run its own account server and does not collect your data.
+Bookmarks stay on this device by default. Export a JSON backup, import it on
+another machine, or turn on optional sync to storage you already own: JSONBin,
+GitHub Gist, Cloudflare KV, Upstash Redis, or a custom HTTPS endpoint. You can
+encrypt that snapshot first. HappyTab does not run its own account server and
+does not collect your data.
 
-Works in this browser on this device, including Microsoft Edge. Open tabs,
-bookmarks, and todos are not shared with another browser unless you configure
-sync yourself.
+These are HappyTab bookmark groups on the new tab page. They do not replace or
+sync the browser’s built-in bookmarks.
+
+The interface is available in English, Simplified Chinese, Traditional Chinese,
+Japanese, Korean, Spanish, French, and German. A small todo list is included on
+the same page.
+
+Works in this browser on this device, including Microsoft Edge. Bookmarks and
+todos are not shared with another browser unless you import a backup or
+configure sync yourself.
 
 ## Suggested Chinese listing (optional extra locale)
 
-HappyTab 用本地优先的工作台替换新标签页：按窗口查看当前打开的标签，切换或关闭，
-并把常用页面存成你自己的书签分组。同一页还可以记待办。
+HappyTab 是一个长在新标签页上的书签管理器。把常用页面存进自己的分组，拖动排序，
+并在同一页打开。当前打开的标签会列在旁边，方便切换、关闭，或保存为书签。
 
-默认同步关闭。只有你开启后，才会把快照发到你自己的 JSONBin、GitHub Gist、
-Cloudflare KV、Upstash Redis 或自定义 HTTPS 接口。可以先加密再上传。HappyTab
-没有自有账号服务，也不会收集你的数据。
+书签默认只保存在这台电脑。可以导出 JSON 备份、在另一台设备导入，或开启同步，
+把快照发到你自己的 JSONBin、GitHub Gist、Cloudflare KV、Upstash Redis 或自定义
+HTTPS 接口。可以先加密再上传。HappyTab 没有自有账号服务，也不会收集你的数据。
 
-不同浏览器之间的本地数据互不同步，除非你自行配置同步。
+这是新标签页上的独立书签分组，不替换、不同步浏览器自带书签栏。
+
+界面支持英语、简体中文、繁体中文、日语、韩语、西班牙语、法语和德语。同一页还
+可以记待办。
+
+不同浏览器之间的本地数据互不同步，除非你自行导入备份或配置同步。
 
 ## Package checklist
 

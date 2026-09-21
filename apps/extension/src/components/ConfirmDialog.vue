@@ -30,6 +30,7 @@ watch(
 </script>
 
 <template>
+  <Transition name="modal">
   <div v-if="open" class="modal-backdrop confirm-dialog-backdrop" @click.self="emit('cancel')">
     <section
       class="confirm-dialog"
@@ -59,4 +60,5 @@ watch(
       </div>
     </section>
   </div>
+  </Transition>
 </template>

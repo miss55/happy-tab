@@ -50,6 +50,10 @@ for (const localeDirectory of supportedLocaleDirectories) {
       continue;
     }
 
+    if (messageName === "appName" && [...message].length > 45) {
+      fail(`locale "${localeDirectory}" appName exceeds the Chrome 45-character limit.`);
+    }
+
     if (messageName === "appDescription" && [...message].length > 132) {
       fail(`locale "${localeDirectory}" appDescription exceeds the Chrome 132-character limit.`);
     }
