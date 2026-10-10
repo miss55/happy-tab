@@ -1,4 +1,4 @@
-import { happyTabDb } from "@/db/happyTabDb";
+import { tabviaDb } from "@/db/tabviaDb";
 import type { CreateUsageStatInput, UpdateUsageStatInput, UsageStat } from "@/types/usageStats";
 
 const nowIso = () => new Date().toISOString();
@@ -6,12 +6,12 @@ const nowIso = () => new Date().toISOString();
 const createId = () => crypto.randomUUID();
 
 export const listUsageStats = async (): Promise<UsageStat[]> => {
-  const usageStats = (await happyTabDb.usage_stats.toArray()).filter((stat) => stat.deleted_at === undefined);
+  const usageStats = (await tabviaDb.usage_stats.toArray()).filter((stat) => stat.deleted_at === undefined);
   return usageStats.sort((a, b) => a.updated_at.localeCompare(b.updated_at));
 };
 
 export const getUsageStat = async (usageStatId: string): Promise<UsageStat | undefined> => {
-  const usageStat = await happyTabDb.usage_stats.get(usageStatId);
+  const usageStat = await tabviaDb.usage_stats.get(usageStatId);
   return usageStat?.deleted_at ? undefined : usageStat;
 };
 
@@ -19,7 +19,7 @@ export const getUsageStatByTarget = async (
   targetType: UsageStat["target_type"],
   targetId: string
 ): Promise<UsageStat | undefined> => {
-  const usageStat = await happyTabDb.usage_stats
+  const usageStat = await tabviaDb.usage_stats
     .where("target_id")
     .equals(targetId)
     .and((stat) => stat.target_type === targetType && stat.deleted_at === undefined)
@@ -39,12 +39,12 @@ export const createUsageStat = async (input: CreateUsageStatInput): Promise<Usag
     updated_at: timestamp
   };
 
-  await happyTabDb.usage_stats.add(usageStat);
+  await tabviaDb.usage_stats.add(usageStat);
   return usageStat;
 };
 
 export const updateUsageStat = async (input: UpdateUsageStatInput): Promise<void> => {
-  await happyTabDb.usage_stats.update(input.id, {
+  await tabviaDb.usage_stats.update(input.id, {
     open_count: input.open_count,
     last_opened_at: input.last_opened_at,
     updated_at: nowIso()
@@ -90,7 +90,7 @@ export const incrementUsageStat = async (
 export const softDeleteUsageStat = async (usageStatId: string): Promise<void> => {
   const timestamp = nowIso();
 
-  await happyTabDb.usage_stats.update(usageStatId, {
+  await tabviaDb.usage_stats.update(usageStatId, {
     deleted_at: timestamp,
     updated_at: timestamp
   });

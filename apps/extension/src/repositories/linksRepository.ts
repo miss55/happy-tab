@@ -1,4 +1,4 @@
-import { happyTabDb } from "@/db/happyTabDb";
+import { tabviaDb } from "@/db/tabviaDb";
 import type {
   CreateLinkGroupInput,
   CreateLinkInput,
@@ -33,12 +33,12 @@ const normalizeUrl = (url: string) => {
 };
 
 const getNextGroupSortOrder = async () => {
-  const groups = (await happyTabDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined);
+  const groups = (await tabviaDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined);
   return groups.reduce((max, group) => Math.max(max, group.sort_order), -1) + 1;
 };
 
 const getNextLinkSortOrder = async (groupId: string) => {
-  const links = await happyTabDb.links
+  const links = await tabviaDb.links
     .where("group_id")
     .equals(groupId)
     .and((link) => link.deleted_at === undefined)
@@ -48,8 +48,8 @@ const getNextLinkSortOrder = async (groupId: string) => {
 };
 
 export const listLinkGroupsWithLinks = async (): Promise<LinkGroupWithLinks[]> => {
-  const groups = (await happyTabDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined);
-  const links = (await happyTabDb.links.toArray()).filter((link) => link.deleted_at === undefined);
+  const groups = (await tabviaDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined);
+  const links = (await tabviaDb.links.toArray()).filter((link) => link.deleted_at === undefined);
 
   return groups
     .sort((a, b) => a.sort_order - b.sort_order)
@@ -62,17 +62,17 @@ export const listLinkGroupsWithLinks = async (): Promise<LinkGroupWithLinks[]> =
 };
 
 export const listLinkGroups = async (): Promise<LinkGroup[]> => {
-  const groups = (await happyTabDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined);
+  const groups = (await tabviaDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined);
   return groups.sort((a, b) => a.sort_order - b.sort_order);
 };
 
 export const getLinkGroup = async (groupId: string): Promise<LinkGroup | undefined> => {
-  const group = await happyTabDb.link_groups.get(groupId);
+  const group = await tabviaDb.link_groups.get(groupId);
   return group?.deleted_at ? undefined : group;
 };
 
 export const ensureDefaultLinkGroup = async (): Promise<LinkGroup> => {
-  const groups = (await happyTabDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined);
+  const groups = (await tabviaDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined);
   const firstGroup = groups.sort((a, b) => a.sort_order - b.sort_order)[0];
 
   if (firstGroup) {
@@ -88,7 +88,7 @@ export const ensureDefaultLinkGroup = async (): Promise<LinkGroup> => {
     updated_at: timestamp
   };
 
-  await happyTabDb.link_groups.add(group);
+  await tabviaDb.link_groups.add(group);
   return group;
 };
 
@@ -111,17 +111,17 @@ export const createLinkGroup = async (input: CreateLinkGroupInput): Promise<Link
     updated_at: timestamp
   };
 
-  await happyTabDb.link_groups.add(group);
+  await tabviaDb.link_groups.add(group);
   return group;
 };
 
 export const listLinks = async (): Promise<SavedLink[]> => {
-  const links = (await happyTabDb.links.toArray()).filter((link) => link.deleted_at === undefined);
+  const links = (await tabviaDb.links.toArray()).filter((link) => link.deleted_at === undefined);
   return links.sort((a, b) => a.sort_order - b.sort_order);
 };
 
 export const getLink = async (linkId: string): Promise<SavedLink | undefined> => {
-  const link = await happyTabDb.links.get(linkId);
+  const link = await tabviaDb.links.get(linkId);
   return link?.deleted_at ? undefined : link;
 };
 
@@ -153,7 +153,7 @@ export const createLink = async (input: CreateLinkInput): Promise<Link> => {
     updated_at: timestamp
   };
 
-  await happyTabDb.links.add(link);
+  await tabviaDb.links.add(link);
   return link;
 };
 
@@ -164,7 +164,7 @@ export const updateLinkGroup = async (input: UpdateLinkGroupInput): Promise<void
     throw new Error("Group name is required.");
   }
 
-  await happyTabDb.link_groups.update(input.id, {
+  await tabviaDb.link_groups.update(input.id, {
     name,
     updated_at: nowIso()
   });
@@ -173,13 +173,13 @@ export const updateLinkGroup = async (input: UpdateLinkGroupInput): Promise<void
 export const softDeleteLinkGroup = async (groupId: string): Promise<void> => {
   const timestamp = nowIso();
 
-  await happyTabDb.transaction("rw", happyTabDb.link_groups, happyTabDb.links, async () => {
-    await happyTabDb.link_groups.update(groupId, {
+  await tabviaDb.transaction("rw", tabviaDb.link_groups, tabviaDb.links, async () => {
+    await tabviaDb.link_groups.update(groupId, {
       deleted_at: timestamp,
       updated_at: timestamp
     });
 
-    const links = await happyTabDb.links
+    const links = await tabviaDb.links
       .where("group_id")
       .equals(groupId)
       .and((link) => link.deleted_at === undefined)
@@ -187,7 +187,7 @@ export const softDeleteLinkGroup = async (groupId: string): Promise<void> => {
 
     await Promise.all(
       links.map((link) =>
-        happyTabDb.links.update(link.id, {
+        tabviaDb.links.update(link.id, {
           deleted_at: timestamp,
           updated_at: timestamp
         })
@@ -208,7 +208,7 @@ export const updateLink = async (input: UpdateLinkInput): Promise<void> => {
     throw new Error("Title is required.");
   }
 
-  await happyTabDb.links.update(input.id, {
+  await tabviaDb.links.update(input.id, {
     group_id: input.group_id,
     title,
     url,
@@ -219,7 +219,7 @@ export const updateLink = async (input: UpdateLinkInput): Promise<void> => {
 export const softDeleteLink = async (linkId: string): Promise<void> => {
   const timestamp = nowIso();
 
-  await happyTabDb.links.update(linkId, {
+  await tabviaDb.links.update(linkId, {
     deleted_at: timestamp,
     updated_at: timestamp
   });
@@ -228,10 +228,10 @@ export const softDeleteLink = async (linkId: string): Promise<void> => {
 export const reorderLinkGroups = async (input: ReorderLinkGroupsInput): Promise<void> => {
   const timestamp = nowIso();
 
-  await happyTabDb.transaction("rw", happyTabDb.link_groups, async () => {
+  await tabviaDb.transaction("rw", tabviaDb.link_groups, async () => {
     await Promise.all(
       input.group_ids.map((groupId, index) =>
-        happyTabDb.link_groups.update(groupId, {
+        tabviaDb.link_groups.update(groupId, {
           sort_order: index,
           updated_at: timestamp
         })
@@ -243,11 +243,11 @@ export const reorderLinkGroups = async (input: ReorderLinkGroupsInput): Promise<
 export const reorderLinks = async (input: ReorderLinksInput): Promise<void> => {
   const timestamp = nowIso();
 
-  await happyTabDb.transaction("rw", happyTabDb.links, async () => {
+  await tabviaDb.transaction("rw", tabviaDb.links, async () => {
     await Promise.all(
       input.groups.flatMap((group) =>
         group.link_ids.map((linkId, index) =>
-          happyTabDb.links.update(linkId, {
+          tabviaDb.links.update(linkId, {
             group_id: group.group_id,
             sort_order: index,
             updated_at: timestamp
@@ -259,7 +259,7 @@ export const reorderLinks = async (input: ReorderLinksInput): Promise<void> => {
 };
 
 export const incrementLinkOpenStats = async (linkId: string) => {
-  const link = await happyTabDb.links.get(linkId);
+  const link = await tabviaDb.links.get(linkId);
 
   if (!link) {
     return;
@@ -267,7 +267,7 @@ export const incrementLinkOpenStats = async (linkId: string) => {
 
   const timestamp = nowIso();
 
-  await happyTabDb.links.update(linkId, {
+  await tabviaDb.links.update(linkId, {
     open_count: link.open_count + 1,
     last_opened_at: timestamp,
     updated_at: timestamp

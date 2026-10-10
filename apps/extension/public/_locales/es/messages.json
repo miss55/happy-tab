@@ -1,8 +1,8 @@
 {
   "appName": {
-    "message": "HappyTab - Gestor de marcadores"
+    "message": "Tabvia - Gestor de marcadores"
   },
   "appDescription": {
-    "message": "Gestor de marcadores en la nueva pestaña. Agrupa en local, importa/exporta o sincroniza a tu almacenamiento. 8 idiomas, sin cuenta."
+    "message": "Espacio de marcadores en la nueva pestaña. Agrupa en local, importa/exporta o sincroniza a tu almacenamiento. 8 idiomas, sin cuenta."
   }
 }

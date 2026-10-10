@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/db/happyTabDb", () => ({
-  happyTabDb: {
+vi.mock("@/db/tabviaDb", () => ({
+  tabviaDb: {
     link_groups: { toArray: vi.fn().mockResolvedValue([]) },
     links: { toArray: vi.fn().mockResolvedValue([]) },
     todos: { toArray: vi.fn().mockResolvedValue([]) },

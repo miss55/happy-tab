@@ -44,14 +44,14 @@ const createVersion3Database = async (group: LinkGroup) => {
   version3Db.close();
 };
 
-describe("HappyTabDb migrations", () => {
+describe("TabviaDb migrations", () => {
   beforeEach(async () => {
     await Dexie.delete(DATABASE_NAME);
   });
 
   afterEach(async () => {
-    const { happyTabDb } = await import("@/db/happyTabDb");
-    happyTabDb.close();
+    const { tabviaDb } = await import("@/db/tabviaDb");
+    tabviaDb.close();
     await Dexie.delete(DATABASE_NAME);
   });
 
@@ -65,10 +65,10 @@ describe("HappyTabDb migrations", () => {
     };
     await createLegacyDatabase(version, legacyGroup);
 
-    const { happyTabDb } = await import("@/db/happyTabDb");
-    await happyTabDb.open();
+    const { tabviaDb } = await import("@/db/tabviaDb");
+    await tabviaDb.open();
 
-    await expect(happyTabDb.link_groups.toArray()).resolves.toEqual([legacyGroup]);
+    await expect(tabviaDb.link_groups.toArray()).resolves.toEqual([legacyGroup]);
   });
 
   it("preserves data for databases already created at version 3", async () => {
@@ -81,28 +81,28 @@ describe("HappyTabDb migrations", () => {
     };
     await createVersion3Database(currentGroup);
 
-    const { happyTabDb } = await import("@/db/happyTabDb");
-    await happyTabDb.open();
+    const { tabviaDb } = await import("@/db/tabviaDb");
+    await tabviaDb.open();
 
-    await expect(happyTabDb.link_groups.toArray()).resolves.toEqual([currentGroup]);
+    await expect(tabviaDb.link_groups.toArray()).resolves.toEqual([currentGroup]);
   });
 
   it("creates only the current table names for a fresh database", async () => {
-    const { happyTabDb } = await import("@/db/happyTabDb");
-    await happyTabDb.open();
+    const { tabviaDb } = await import("@/db/tabviaDb");
+    await tabviaDb.open();
 
-    const tableNames = happyTabDb.tables.map((table) => table.name);
+    const tableNames = tabviaDb.tables.map((table) => table.name);
     expect(tableNames).toContain("link_groups");
     expect(tableNames).toContain("theme_assets");
     expect(tableNames).not.toContain("linkGroups");
   });
 
   it("stores a local background image asset", async () => {
-    const { happyTabDb } = await import("@/db/happyTabDb");
+    const { tabviaDb } = await import("@/db/tabviaDb");
     const { getThemeBackgroundAsset, saveThemeBackgroundAsset } = await import(
       "@/repositories/themeAssetRepository"
     );
-    await happyTabDb.open();
+    await tabviaDb.open();
 
     await saveThemeBackgroundAsset({
       blob: new Blob(["background"], { type: "image/png" }),

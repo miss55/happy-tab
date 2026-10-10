@@ -87,10 +87,10 @@ describe("i18n", () => {
     expect(translateMessage("en", "about.description")).toContain("8 languages");
     expect(translateMessage("zh-CN", "about.privacyTitle")).toBe("我们不收集任何数据");
     expect(translateMessage("zh-CN", "about.privacyBody")).toBe(
-      "HappyTab 不收集你的书签、待办或浏览内容。数据默认只留在这台电脑的浏览器里。"
+      "Tabvia 不收集你的书签、待办或浏览内容。数据默认只留在这台电脑的浏览器里。"
     );
     expect(translateMessage("en", "about.privacyBody")).toBe(
-      "HappyTab does not collect your bookmarks, todos, or browsing content. By default, everything stays in this browser on this device."
+      "Tabvia does not collect your bookmarks, todos, or browsing content. By default, everything stays in this browser on this device."
     );
     expect(translateMessage("en", "about.privacyBody")).not.toMatch(/sync/i);
     expect(translateMessage("zh-CN", "about.privacyBody")).not.toMatch(/同步/);
@@ -110,7 +110,7 @@ describe("i18n", () => {
     expect(translateMessage("fr", "common.confirm")).toBe("Confirmer");
     expect(translateMessage("de", "common.confirm")).toBe("Bestätigen");
     expect(translateMessage("en", "cloud.httpsRequired")).toBe(
-      "Use an HTTPS URL. HappyTab does not send snapshots over HTTP."
+      "Use an HTTPS URL. Tabvia does not send snapshots over HTTP."
     );
     expect(translateMessage("zh-CN", "cloud.syncSuccess")).toBe("同步完成。");
     expect(translateMessage("en", "cloud.syncSuccess")).toBe("Sync completed.");

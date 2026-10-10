@@ -1,14 +1,14 @@
-import { happyTabDb } from "@/db/happyTabDb";
+import { tabviaDb } from "@/db/tabviaDb";
 import type { LinkGroup, SavedLink } from "@/types/links";
 import type { TodoItem } from "@/types/todos";
 import type { UsageStat } from "@/types/usageStats";
 import {
   DataBackupError,
-  HAPPY_TAB_BACKUP_FORMAT,
-  HAPPY_TAB_BACKUP_VERSION,
+  TABVIA_BACKUP_FORMAT,
+  TABVIA_BACKUP_VERSION,
   type DataImportMode,
   type DataImportSummary,
-  type HappyTabBackupV1
+  type TabviaBackupV1
 } from "@/types/dataPortability";
 
 type UnknownRecord = Record<string, unknown>;
@@ -174,12 +174,12 @@ const ensureUniqueIds = (items: Array<{ id: string }>, path: string) => {
   }
 };
 
-export const parseHappyTabBackup = (input: unknown): HappyTabBackupV1 => {
-  if (!isRecord(input) || input.format !== HAPPY_TAB_BACKUP_FORMAT) {
+export const parseTabviaBackup = (input: unknown): TabviaBackupV1 => {
+  if (!isRecord(input) || input.format !== TABVIA_BACKUP_FORMAT) {
     throw new DataBackupError("invalid_format");
   }
 
-  if (input.version !== HAPPY_TAB_BACKUP_VERSION) {
+  if (input.version !== TABVIA_BACKUP_VERSION) {
     throw new DataBackupError("unsupported_version");
   }
 
@@ -214,8 +214,8 @@ export const parseHappyTabBackup = (input: unknown): HappyTabBackupV1 => {
   }
 
   return {
-    format: HAPPY_TAB_BACKUP_FORMAT,
-    version: HAPPY_TAB_BACKUP_VERSION,
+    format: TABVIA_BACKUP_FORMAT,
+    version: TABVIA_BACKUP_VERSION,
     exported_at: exportedAt,
     data: {
       link_groups: linkGroups,
@@ -226,9 +226,9 @@ export const parseHappyTabBackup = (input: unknown): HappyTabBackupV1 => {
   };
 };
 
-export const parseHappyTabBackupJson = (json: string): HappyTabBackupV1 => {
+export const parseTabviaBackupJson = (json: string): TabviaBackupV1 => {
   try {
-    return parseHappyTabBackup(JSON.parse(json) as unknown);
+    return parseTabviaBackup(JSON.parse(json) as unknown);
   } catch (error) {
     if (error instanceof DataBackupError) {
       throw error;
@@ -243,23 +243,23 @@ const activeOnly = <T extends { deleted_at?: string }>(items: T[]) =>
     .filter((item) => item.deleted_at === undefined)
     .map(({ deleted_at: _deletedAt, ...item }) => item as T);
 
-export const createHappyTabBackup = async (): Promise<HappyTabBackupV1> => {
-  const linkGroups = activeOnly(await happyTabDb.link_groups.toArray()).sort(
+export const createTabviaBackup = async (): Promise<TabviaBackupV1> => {
+  const linkGroups = activeOnly(await tabviaDb.link_groups.toArray()).sort(
     (a, b) => a.sort_order - b.sort_order
   );
   const groupIds = new Set(linkGroups.map((group) => group.id));
-  const links = activeOnly(await happyTabDb.links.toArray())
+  const links = activeOnly(await tabviaDb.links.toArray())
     .filter((link) => groupIds.has(link.group_id))
     .sort((a, b) => a.group_id.localeCompare(b.group_id) || a.sort_order - b.sort_order);
   const linkIds = new Set(links.map((link) => link.id));
-  const todos = activeOnly(await happyTabDb.todos.toArray()).sort((a, b) => a.sort_order - b.sort_order);
-  const usageStats = activeOnly(await happyTabDb.usage_stats.toArray()).filter((stat) =>
+  const todos = activeOnly(await tabviaDb.todos.toArray()).sort((a, b) => a.sort_order - b.sort_order);
+  const usageStats = activeOnly(await tabviaDb.usage_stats.toArray()).filter((stat) =>
     linkIds.has(stat.target_id)
   );
 
   return {
-    format: HAPPY_TAB_BACKUP_FORMAT,
-    version: HAPPY_TAB_BACKUP_VERSION,
+    format: TABVIA_BACKUP_FORMAT,
+    version: TABVIA_BACKUP_VERSION,
     exported_at: new Date().toISOString(),
     data: {
       link_groups: linkGroups,
@@ -271,54 +271,54 @@ export const createHappyTabBackup = async (): Promise<HappyTabBackupV1> => {
 };
 
 const normalizeImportedSortOrders = async () => {
-  const groups = (await happyTabDb.link_groups.toArray())
+  const groups = (await tabviaDb.link_groups.toArray())
     .filter((group) => group.deleted_at === undefined)
     .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
 
-  await happyTabDb.link_groups.bulkPut(groups.map((group, index) => ({ ...group, sort_order: index })));
+  await tabviaDb.link_groups.bulkPut(groups.map((group, index) => ({ ...group, sort_order: index })));
 
   for (const group of groups) {
-    const links = (await happyTabDb.links.where("group_id").equals(group.id).toArray())
+    const links = (await tabviaDb.links.where("group_id").equals(group.id).toArray())
       .filter((link) => link.deleted_at === undefined)
       .sort(
         (a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)
       );
 
     if (links.length > 0) {
-      await happyTabDb.links.bulkPut(links.map((link, index) => ({ ...link, sort_order: index })));
+      await tabviaDb.links.bulkPut(links.map((link, index) => ({ ...link, sort_order: index })));
     }
   }
 
-  const todos = (await happyTabDb.todos.toArray())
+  const todos = (await tabviaDb.todos.toArray())
     .filter((todo) => todo.deleted_at === undefined)
     .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
 
   if (todos.length > 0) {
-    await happyTabDb.todos.bulkPut(todos.map((todo, index) => ({ ...todo, sort_order: index })));
+    await tabviaDb.todos.bulkPut(todos.map((todo, index) => ({ ...todo, sort_order: index })));
   }
 };
 
-export const importHappyTabBackup = async (
+export const importTabviaBackup = async (
   input: unknown,
   mode: DataImportMode
 ): Promise<DataImportSummary> => {
-  const backup = parseHappyTabBackup(input);
+  const backup = parseTabviaBackup(input);
 
-  await happyTabDb.transaction(
+  await tabviaDb.transaction(
     "rw",
-    happyTabDb.link_groups,
-    happyTabDb.links,
-    happyTabDb.todos,
-    happyTabDb.usage_stats,
-    happyTabDb.sync_queue,
+    tabviaDb.link_groups,
+    tabviaDb.links,
+    tabviaDb.todos,
+    tabviaDb.usage_stats,
+    tabviaDb.sync_queue,
     async () => {
       if (mode === "replace") {
         await Promise.all([
-          happyTabDb.link_groups.clear(),
-          happyTabDb.links.clear(),
-          happyTabDb.todos.clear(),
-          happyTabDb.usage_stats.clear(),
-          happyTabDb.sync_queue.clear()
+          tabviaDb.link_groups.clear(),
+          tabviaDb.links.clear(),
+          tabviaDb.todos.clear(),
+          tabviaDb.usage_stats.clear(),
+          tabviaDb.sync_queue.clear()
         ]);
       } else {
         const importedEntityKeys = new Set([
@@ -327,26 +327,26 @@ export const importHappyTabBackup = async (
           ...backup.data.todos.map((todo) => `todo:${todo.id}`),
           ...backup.data.usage_stats.map((stat) => `usage_stat:${stat.id}`)
         ]);
-        const staleQueueItemIds = (await happyTabDb.sync_queue.toArray())
+        const staleQueueItemIds = (await tabviaDb.sync_queue.toArray())
           .filter((item) => importedEntityKeys.has(`${item.entity_type}:${item.entity_id}`))
           .map((item) => item.id);
 
         if (staleQueueItemIds.length > 0) {
-          await happyTabDb.sync_queue.bulkDelete(staleQueueItemIds);
+          await tabviaDb.sync_queue.bulkDelete(staleQueueItemIds);
         }
       }
 
       if (backup.data.link_groups.length > 0) {
-        await happyTabDb.link_groups.bulkPut(backup.data.link_groups);
+        await tabviaDb.link_groups.bulkPut(backup.data.link_groups);
       }
       if (backup.data.links.length > 0) {
-        await happyTabDb.links.bulkPut(backup.data.links);
+        await tabviaDb.links.bulkPut(backup.data.links);
       }
       if (backup.data.todos.length > 0) {
-        await happyTabDb.todos.bulkPut(backup.data.todos);
+        await tabviaDb.todos.bulkPut(backup.data.todos);
       }
       if (backup.data.usage_stats.length > 0) {
-        await happyTabDb.usage_stats.bulkPut(backup.data.usage_stats);
+        await tabviaDb.usage_stats.bulkPut(backup.data.usage_stats);
       }
 
       await normalizeImportedSortOrders();

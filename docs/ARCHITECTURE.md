@@ -1,6 +1,6 @@
-# HappyTab Architecture
+# Tabvia Architecture
 
-HappyTab is a local-first bookmark manager that replaces the new tab page. It must work without login. Cloud sync is optional and uses user-owned third-party storage. HappyTab bookmarks are independent of the browser bookmark bar.
+Tabvia is a local-first bookmark manager that replaces the new tab page. It must work without login. Cloud sync is optional and uses user-owned third-party storage. Tabvia bookmarks are independent of the browser bookmark bar.
 
 ## Layout
 
@@ -69,7 +69,7 @@ Use `chrome.storage.local` only for lightweight settings:
 ## Domain Terms
 
 - Browser Tab: currently opened Chrome tab from the Chrome tabs API.
-- Link: saved user-managed item persisted by HappyTab.
+- Link: saved user-managed item persisted by Tabvia.
 - Link Group: user-defined group containing saved Links.
 - Todo: local user-created task.
 

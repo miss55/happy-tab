@@ -5,7 +5,7 @@ import type { ThemeBackgroundAsset } from "@/types/theme";
 import type { TodoItem } from "@/types/todos";
 import type { UsageStat } from "@/types/usageStats";
 
-class HappyTabDb extends Dexie {
+class TabviaDb extends Dexie {
   link_groups!: Table<LinkGroup, string>;
   links!: Table<SavedLink, string>;
   todos!: Table<TodoItem, string>;
@@ -55,4 +55,4 @@ class HappyTabDb extends Dexie {
   }
 }
 
-export const happyTabDb = new HappyTabDb();
+export const tabviaDb = new TabviaDb();

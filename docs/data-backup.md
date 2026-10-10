@@ -1,6 +1,6 @@
 # Local Data Backup
 
-HappyTab exports local business data as a versioned JSON document. The current
+Tabvia exports local business data as a versioned JSON document. The current
 format is `happy-tab-backup` version `1`.
 
 ## Included data

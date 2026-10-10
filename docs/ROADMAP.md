@@ -1,4 +1,4 @@
-# HappyTab Roadmap
+# Tabvia Roadmap
 
 ## Phase 1: Local Extension MVP
 

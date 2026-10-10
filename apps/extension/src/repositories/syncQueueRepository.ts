@@ -1,4 +1,4 @@
-import { happyTabDb } from "@/db/happyTabDb";
+import { tabviaDb } from "@/db/tabviaDb";
 import type {
   CreateSyncQueueItemInput,
   SyncQueueItem,
@@ -11,13 +11,13 @@ const nowIso = () => new Date().toISOString();
 const createId = () => crypto.randomUUID();
 
 export const listSyncQueueItems = async (status?: SyncQueueStatus): Promise<SyncQueueItem[]> => {
-  const items = (await happyTabDb.sync_queue.toArray()).filter((item) => item.deleted_at === undefined);
+  const items = (await tabviaDb.sync_queue.toArray()).filter((item) => item.deleted_at === undefined);
   const filteredItems = status ? items.filter((item) => item.status === status) : items;
   return filteredItems.sort((a, b) => a.created_at.localeCompare(b.created_at));
 };
 
 export const getSyncQueueItem = async (syncQueueItemId: string): Promise<SyncQueueItem | undefined> => {
-  const item = await happyTabDb.sync_queue.get(syncQueueItemId);
+  const item = await tabviaDb.sync_queue.get(syncQueueItemId);
   return item?.deleted_at ? undefined : item;
 };
 
@@ -35,12 +35,12 @@ export const createSyncQueueItem = async (input: CreateSyncQueueItemInput): Prom
     updated_at: timestamp
   };
 
-  await happyTabDb.sync_queue.add(item);
+  await tabviaDb.sync_queue.add(item);
   return item;
 };
 
 export const updateSyncQueueItem = async (input: UpdateSyncQueueItemInput): Promise<void> => {
-  await happyTabDb.sync_queue.update(input.id, {
+  await tabviaDb.sync_queue.update(input.id, {
     status: input.status,
     retry_count: input.retry_count,
     error_message: input.error_message,
@@ -52,7 +52,7 @@ export const updateSyncQueueItem = async (input: UpdateSyncQueueItemInput): Prom
 export const softDeleteSyncQueueItem = async (syncQueueItemId: string): Promise<void> => {
   const timestamp = nowIso();
 
-  await happyTabDb.sync_queue.update(syncQueueItemId, {
+  await tabviaDb.sync_queue.update(syncQueueItemId, {
     deleted_at: timestamp,
     updated_at: timestamp
   });

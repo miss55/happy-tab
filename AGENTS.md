@@ -1,8 +1,8 @@
-# HappyTab Agent Instructions
+# Tabvia Agent Instructions
 
-You are working on HappyTab, a pnpm workspace whose product is a Chrome Manifest V3 extension.
+You are working on Tabvia, a pnpm workspace whose product is a Chrome Manifest V3 extension.
 
-HappyTab is a bookmark manager that replaces the browser new tab page. It shows current browser tabs grouped by windows, lets users save tabs as custom links, organize links into draggable groups, track link open counts, manage a local todo list, import/export a local backup, and optionally sync a snapshot to user-owned third-party storage. The UI supports multiple languages. HappyTab bookmarks are independent of the browser bookmark bar.
+Tabvia is a bookmark manager that replaces the browser new tab page. It shows current browser tabs grouped by windows, lets users save tabs as custom links, organize links into draggable groups, track link open counts, manage a local todo list, import/export a local backup, and optionally sync a snapshot to user-owned third-party storage. The UI supports multiple languages. Tabvia bookmarks are independent of the browser bookmark bar.
 
 ## Repository Structure
 
@@ -24,7 +24,7 @@ HappyTab is a bookmark manager that replaces the browser new tab page. It shows 
 ## Terminology
 
 - Browser Tab: A currently opened Chrome tab from chrome.tabs API.
-- Link: A saved user bookmark-like item managed by HappyTab.
+- Link: A saved user bookmark-like item managed by Tabvia.
 - Link Group: A user-defined group containing saved Links.
 - Todo: A user-created task item.
 

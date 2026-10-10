@@ -1,4 +1,4 @@
-import { happyTabDb } from "@/db/happyTabDb";
+import { tabviaDb } from "@/db/tabviaDb";
 import type {
   ThemeBackgroundAsset,
   ThemeBackgroundMimeType
@@ -14,7 +14,7 @@ export interface SaveThemeBackgroundAssetInput {
 }
 
 export const getThemeBackgroundAsset = () =>
-  happyTabDb.theme_assets.get(BACKGROUND_ASSET_ID);
+  tabviaDb.theme_assets.get(BACKGROUND_ASSET_ID);
 
 export const saveThemeBackgroundAsset = async ({
   blob,
@@ -31,9 +31,9 @@ export const saveThemeBackgroundAsset = async ({
     updated_at: new Date().toISOString()
   };
 
-  await happyTabDb.theme_assets.put(asset);
+  await tabviaDb.theme_assets.put(asset);
   return asset;
 };
 
 export const deleteThemeBackgroundAsset = () =>
-  happyTabDb.theme_assets.delete(BACKGROUND_ASSET_ID);
+  tabviaDb.theme_assets.delete(BACKGROUND_ASSET_ID);

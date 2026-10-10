@@ -1,4 +1,4 @@
-export const EXTENSION_FETCH_MESSAGE_TYPE = "happytab.fetch";
+export const EXTENSION_FETCH_MESSAGE_TYPE = "tabvia.fetch";
 
 export type ExtensionFetchRequest = {
   type: typeof EXTENSION_FETCH_MESSAGE_TYPE;

@@ -1,6 +1,6 @@
 # Store listing and packaging
 
-HappyTab uses one Manifest V3 package for Chrome and Microsoft Edge. Zip the
+Tabvia uses one Manifest V3 package for Chrome and Microsoft Edge. Zip the
 contents of `apps/extension/dist` (so `manifest.json` is at the zip root), not
 the `dist` folder itself.
 
@@ -18,7 +18,7 @@ Then:
 1. Paste that live privacy URL into Chrome Web Store and Edge Add-ons.
 2. Load unpacked `apps/extension/dist` in Chrome and Edge, then capture real
    **1280×800** (or Edge 640×480) new-tab screenshots. Do not use mockups.
-3. Fill each store listing separately. Edge text must not sell HappyTab as a
+3. Fill each store listing separately. Edge text must not sell Tabvia as a
    Chrome-only extension. Use the drafts below.
 
 One zip of `apps/extension/dist` is enough for both stores. Do not build a
@@ -57,7 +57,7 @@ questions.
 
 **tabs**  
 List, switch, and close currently open tabs on the new tab page, and save a tab
-as a local bookmark-style link. HappyTab reads tab titles and URLs for that UI
+as a local bookmark-style link. Tabvia reads tab titles and URLs for that UI
 only. It does not read full browsing history.
 
 **storage**  
@@ -76,12 +76,13 @@ provider CORS and do not need host permissions.
 
 - One-time developer registration fee.
 - Localized name comes from `_locales/*/messages.json` (`appName`, max 45
-  characters). Use `HappyTab - Bookmark Manager` (or the locale equivalent)
-  so store search can match bookmark queries; do not drop the HappyTab brand.
+  characters). Use `Tabvia - Bookmark Manager` (or the locale equivalent)
+  so store search can match bookmark queries; do not drop the Tabvia brand.
 - Short description comes from `_locales/*/messages.json` (`appDescription`,
-  max 132 characters). Lead with bookmark manager on the new tab page, then
-  local import/export, optional user-owned sync, and languages. Do not claim
-  the browser’s built-in bookmarks or a first-party account.
+  max 132 characters). Lead with a bookmark workspace on the new tab page, then
+  local import/export, optional user-owned sync, and languages. Keep bookmark
+  in the name so store search can match bookmark queries. Do not claim the
+  browser’s built-in bookmarks or a first-party account.
 - Category: Productivity.
 - Privacy practices: the extension handles user data (open tab URLs, locally
   saved links/todos). It does **not** sell data. Remote storage happens only
@@ -89,15 +90,15 @@ provider CORS and do not need host permissions.
 - Privacy policy URL:
   `https://miss55.github.io/happy-tab/privacy-policy.html`
 - Disclose that install replaces the new tab page.
-- Do not describe HappyTab as a search engine or default-search replacement.
+- Do not describe Tabvia as a search engine or default-search replacement.
   The search box only filters open tabs.
 
 ### Single purpose
 
-HappyTab is a bookmark manager on the new tab page. Open tabs are how users
+Tabvia is a bookmark manager on the new tab page. Open tabs are how users
 save and switch to pages; a small todo list stays on the same page. Keep the
 listing focused on bookmarks, local backup, and optional user-owned sync. Do
-not add unrelated search, shopping, or coupon claims. Do not describe HappyTab
+not add unrelated search, shopping, or coupon claims. Do not describe Tabvia
 as the browser’s built-in bookmark bar.
 
 ## Microsoft Edge Add-ons
@@ -115,17 +116,17 @@ You may load the same unpacked `apps/extension/dist` in Edge at
 
 ## Suggested English listing (Edge long description)
 
-HappyTab is a bookmark manager on the new tab page. Save pages into groups you
+Tabvia is a bookmark manager on the new tab page. Save pages into groups you
 control, drag to reorder, and open them from the same page. Open tabs appear
 alongside so you can switch, close, or save them as bookmarks.
 
 Bookmarks stay on this device by default. Export a JSON backup, import it on
 another machine, or turn on optional sync to storage you already own: JSONBin,
 GitHub Gist, Cloudflare KV, Upstash Redis, or a custom HTTPS endpoint. You can
-encrypt that snapshot first. HappyTab does not run its own account server and
+encrypt that snapshot first. Tabvia does not run its own account server and
 does not collect your data.
 
-These are HappyTab bookmark groups on the new tab page. They do not replace or
+These are Tabvia bookmark groups on the new tab page. They do not replace or
 sync the browser’s built-in bookmarks.
 
 The interface is available in English, Simplified Chinese, Traditional Chinese,
@@ -138,12 +139,12 @@ configure sync yourself.
 
 ## Suggested Chinese listing (optional extra locale)
 
-HappyTab 是一个长在新标签页上的书签管理器。把常用页面存进自己的分组，拖动排序，
+Tabvia 是一个长在新标签页上的书签管理器。把常用页面存进自己的分组，拖动排序，
 并在同一页打开。当前打开的标签会列在旁边，方便切换、关闭，或保存为书签。
 
 书签默认只保存在这台电脑。可以导出 JSON 备份、在另一台设备导入，或开启同步，
 把快照发到你自己的 JSONBin、GitHub Gist、Cloudflare KV、Upstash Redis 或自定义
-HTTPS 接口。可以先加密再上传。HappyTab 没有自有账号服务，也不会收集你的数据。
+HTTPS 接口。可以先加密再上传。Tabvia 没有自有账号服务，也不会收集你的数据。
 
 这是新标签页上的独立书签分组，不替换、不同步浏览器自带书签栏。
 

@@ -1,4 +1,4 @@
-import { happyTabDb } from "@/db/happyTabDb";
+import { tabviaDb } from "@/db/tabviaDb";
 import type { MessageKey } from "@/i18n/messages";
 import type { LinkGroup, SavedLink } from "@/types/links";
 import type { TodoItem } from "@/types/todos";
@@ -39,10 +39,10 @@ export const messageKeyFromSyncError = (error: unknown, fallback: MessageKey): M
 
 export const buildLocalSnapshot = async (): Promise<SyncSnapshot> => {
   const [link_groups, links, todos, usage_stats] = await Promise.all([
-    happyTabDb.link_groups.toArray(),
-    happyTabDb.links.toArray(),
-    happyTabDb.todos.toArray(),
-    happyTabDb.usage_stats.toArray()
+    tabviaDb.link_groups.toArray(),
+    tabviaDb.links.toArray(),
+    tabviaDb.todos.toArray(),
+    tabviaDb.usage_stats.toArray()
   ]);
 
   return {
@@ -63,21 +63,21 @@ export const applyMergedSnapshotToDb = async (merged: {
   todos: TodoItem[];
   usage_stats?: UsageStat[];
 }): Promise<void> => {
-  await happyTabDb.transaction(
+  await tabviaDb.transaction(
     "rw",
-    [happyTabDb.link_groups, happyTabDb.links, happyTabDb.todos, happyTabDb.usage_stats],
+    [tabviaDb.link_groups, tabviaDb.links, tabviaDb.todos, tabviaDb.usage_stats],
     async () => {
       if (merged.link_groups.length > 0) {
-        await happyTabDb.link_groups.bulkPut(merged.link_groups);
+        await tabviaDb.link_groups.bulkPut(merged.link_groups);
       }
       if (merged.links.length > 0) {
-        await happyTabDb.links.bulkPut(merged.links);
+        await tabviaDb.links.bulkPut(merged.links);
       }
       if (merged.todos.length > 0) {
-        await happyTabDb.todos.bulkPut(merged.todos);
+        await tabviaDb.todos.bulkPut(merged.todos);
       }
       if (merged.usage_stats && merged.usage_stats.length > 0) {
-        await happyTabDb.usage_stats.bulkPut(merged.usage_stats);
+        await tabviaDb.usage_stats.bulkPut(merged.usage_stats);
       }
     }
   );

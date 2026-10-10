@@ -1,4 +1,4 @@
-import { happyTabDb } from "@/db/happyTabDb";
+import { tabviaDb } from "@/db/tabviaDb";
 import type { CreateTodoInput, ReorderTodosInput, Todo, UpdateTodoInput } from "@/types/todos";
 
 const nowIso = () => new Date().toISOString();
@@ -6,7 +6,7 @@ const nowIso = () => new Date().toISOString();
 const createId = () => crypto.randomUUID();
 
 const getActiveTodos = async () =>
-  (await happyTabDb.todos.toArray()).filter((todo) => todo.deleted_at === undefined);
+  (await tabviaDb.todos.toArray()).filter((todo) => todo.deleted_at === undefined);
 
 const getNextTodoSortOrder = async () => {
   const todos = await getActiveTodos();
@@ -19,7 +19,7 @@ export const listTodos = async (): Promise<Todo[]> => {
 };
 
 export const getTodo = async (todoId: string): Promise<Todo | undefined> => {
-  const todo = await happyTabDb.todos.get(todoId);
+  const todo = await tabviaDb.todos.get(todoId);
   return todo?.deleted_at ? undefined : todo;
 };
 
@@ -40,7 +40,7 @@ export const createTodo = async (input: CreateTodoInput): Promise<Todo> => {
     updated_at: timestamp
   };
 
-  await happyTabDb.todos.add(todo);
+  await tabviaDb.todos.add(todo);
   return todo;
 };
 
@@ -51,7 +51,7 @@ export const updateTodo = async (input: UpdateTodoInput): Promise<void> => {
     throw new Error("Todo title is required.");
   }
 
-  await happyTabDb.todos.update(input.id, {
+  await tabviaDb.todos.update(input.id, {
     title,
     updated_at: nowIso()
   });
@@ -60,7 +60,7 @@ export const updateTodo = async (input: UpdateTodoInput): Promise<void> => {
 export const toggleTodo = async (todoId: string, completed: boolean): Promise<void> => {
   const timestamp = nowIso();
 
-  await happyTabDb.todos.update(todoId, {
+  await tabviaDb.todos.update(todoId, {
     completed,
     completed_at: completed ? timestamp : undefined,
     updated_at: timestamp
@@ -70,7 +70,7 @@ export const toggleTodo = async (todoId: string, completed: boolean): Promise<vo
 export const softDeleteTodo = async (todoId: string): Promise<void> => {
   const timestamp = nowIso();
 
-  await happyTabDb.todos.update(todoId, {
+  await tabviaDb.todos.update(todoId, {
     deleted_at: timestamp,
     updated_at: timestamp
   });
@@ -79,10 +79,10 @@ export const softDeleteTodo = async (todoId: string): Promise<void> => {
 export const reorderTodos = async (input: ReorderTodosInput): Promise<void> => {
   const timestamp = nowIso();
 
-  await happyTabDb.transaction("rw", happyTabDb.todos, async () => {
+  await tabviaDb.transaction("rw", tabviaDb.todos, async () => {
     await Promise.all(
       input.todo_ids.map((todoId, index) =>
-        happyTabDb.todos.update(todoId, {
+        tabviaDb.todos.update(todoId, {
           sort_order: index,
           updated_at: timestamp
         })

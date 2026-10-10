@@ -81,7 +81,7 @@ describe("getBrowserWindowGroups", () => {
         focused: true,
         type: "normal",
         tabs: [
-          { id: 21, windowId: 2, title: "HappyTab", active: true },
+          { id: 21, windowId: 2, title: "Tabvia", active: true },
           { id: 22, windowId: 2, title: "Visible tab", active: false }
         ] as chrome.tabs.Tab[]
       }

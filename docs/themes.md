@@ -1,6 +1,6 @@
 # Themes
 
-HappyTab uses a Theme Engine. Style, color mode, accent palette, and
+Tabvia uses a Theme Engine. Style, color mode, accent palette, and
 background are independent. Switching a theme does not copy pages or change
 bookmark, todo, or tab behavior.
 
@@ -8,7 +8,7 @@ bookmark, todo, or tab behavior.
 
 The style is the design language:
 
-- `soft`: the default HappyTab look, with rounded cards and soft shadows;
+- `soft`: the default Tabvia look, with rounded cards and soft shadows;
 - `minimal`: flat surfaces, visible 1px borders, and almost no shadow;
 - `glass`: frosted surfaces over a wallpaper or atmospheric gradient;
 - `fluent`: mica-inspired translucent layers and medium rounding;

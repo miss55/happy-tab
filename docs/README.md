@@ -1,4 +1,4 @@
-# HappyTab Docs
+# Tabvia Docs
 
 Source: [https://github.com/miss55/happy-tab](https://github.com/miss55/happy-tab)
 

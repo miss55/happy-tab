@@ -1,5 +1,5 @@
 {
-  "name": "happy-tab",
+  "name": "tabvia",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -12,15 +12,15 @@
   "bugs": {
     "url": "https://github.com/miss55/happy-tab/issues"
   },
-  "description": "HappyTab monorepo",
+  "description": "Tabvia monorepo",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "build": "pnpm -r build",
     "check:manifest": "node scripts/validate-extension-manifest.mjs",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r typecheck",
-    "dev:extension": "pnpm --filter @happytab/extension dev",
-    "build:extension": "pnpm --filter @happytab/extension build"
+    "dev:extension": "pnpm --filter @tabvia/extension dev",
+    "build:extension": "pnpm --filter @tabvia/extension build"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

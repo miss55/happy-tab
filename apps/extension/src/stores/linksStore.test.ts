@@ -7,7 +7,7 @@ describe("browserTabToLinkInput", () => {
     const tab: BrowserTab = {
       id: 42,
       windowId: 7,
-      title: "HappyTab",
+      title: "Tabvia",
       url: "https://example.com/docs",
       favIconUrl: "https://example.com/favicon.ico",
       active: false,
@@ -16,7 +16,7 @@ describe("browserTabToLinkInput", () => {
 
     expect(browserTabToLinkInput(tab, "research")).toEqual({
       group_id: "research",
-      title: "HappyTab",
+      title: "Tabvia",
       url: "https://example.com/docs",
       favicon_url: "https://example.com/favicon.ico",
       source: "browser_tab"

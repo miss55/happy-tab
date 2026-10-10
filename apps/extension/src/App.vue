@@ -16,9 +16,9 @@ import {
   getBrowserWindowGroups
 } from "@/services/browserTabs";
 import {
-  downloadHappyTabBackup,
-  readHappyTabBackupFile,
-  restoreHappyTabBackup
+  downloadTabviaBackup,
+  readTabviaBackupFile,
+  restoreTabviaBackup
 } from "@/services/dataPortability";
 import { useTheme } from "@/services/theme";
 import { useWorkspaceSettings } from "@/services/workspaceSettings";
@@ -39,7 +39,7 @@ import {
   DataBackupError,
   type DataImportMode,
   type DataImportSummary,
-  type HappyTabBackupV1
+  type TabviaBackupV1
 } from "@/types/dataPortability";
 import type { Link, LinkGroupWithLinks } from "@/types/links";
 import type { ProviderType, SyncProviderConfig } from "@/services/sync/types";
@@ -278,7 +278,7 @@ const themeErrorKey = ref<MessageKey | null>(null);
 const isThemeBackgroundBusy = ref(false);
 const isDataTransferBusy = ref(false);
 const dataImportMode = ref<DataImportMode>("merge");
-const selectedImportBackup = ref<HappyTabBackupV1 | null>(null);
+const selectedImportBackup = ref<TabviaBackupV1 | null>(null);
 const selectedImportFileName = ref("");
 const dataTransferNotice = ref<{
   kind: "success" | "error";
@@ -1054,7 +1054,7 @@ const endTodoDrag = () => {
 };
 
 const getBackupSummaryParams = (
-  backup: HappyTabBackupV1 | DataImportSummary
+  backup: TabviaBackupV1 | DataImportSummary
 ): TranslationParams => {
   if ("data" in backup) {
     return {
@@ -1095,7 +1095,7 @@ const exportLocalData = async () => {
   dataTransferNotice.value = null;
 
   try {
-    const backup = await downloadHappyTabBackup();
+    const backup = await downloadTabviaBackup();
     dataTransferNotice.value = {
       kind: "success",
       key: "data.exportSuccess",
@@ -1128,7 +1128,7 @@ const selectImportBackup = async (event: Event) => {
   selectedImportFileName.value = "";
 
   try {
-    selectedImportBackup.value = await readHappyTabBackupFile(file);
+    selectedImportBackup.value = await readTabviaBackupFile(file);
     selectedImportFileName.value = file.name;
   } catch (error) {
     dataTransferNotice.value = { kind: "error", key: getBackupErrorMessageKey(error) };
@@ -1154,7 +1154,7 @@ const importLocalData = async () => {
   dataTransferNotice.value = null;
 
   try {
-    const summary = await restoreHappyTabBackup(selectedImportBackup.value, dataImportMode.value);
+    const summary = await restoreTabviaBackup(selectedImportBackup.value, dataImportMode.value);
     await Promise.all([linksStore.loadLinks(), todosStore.loadTodos()]);
 
     if (!linkGroups.value.some((group) => group.id === selectedGroupId.value)) {
@@ -1441,7 +1441,7 @@ onBeforeUnmount(() => {
   <main class="newtab-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">HappyTab</p>
+        <p class="eyebrow">Tabvia</p>
         <h1>{{ t("top.bookmarks") }}</h1>
       </div>
       <div class="topbar-actions">
