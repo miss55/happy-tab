@@ -1,4 +1,4 @@
-const FALLBACK_EXTENSION_VERSION = "0.1.1";
+const FALLBACK_EXTENSION_VERSION = "0.1.3";
 
 export const getExtensionVersion = (): string => {
   if (typeof chrome === "undefined" || !chrome.runtime?.getManifest) {
