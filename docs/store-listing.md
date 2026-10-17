@@ -4,6 +4,17 @@ Tabvia uses one Manifest V3 package for Chrome and Microsoft Edge. Zip the
 contents of `apps/extension/dist` (so `manifest.json` is at the zip root), not
 the `dist` folder itself.
 
+The project skill [package-extension](../.agents/skills/package-extension/SKILL.md)
+automates manifest validation, tests, production build, ZIP creation, and archive
+verification. From the repository root on Windows:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .agents/skills/package-extension/scripts/package-extension.ps1
+```
+
+The verified ZIP is written to `dist/store/tabvia-<version>-<timestamp>-<suffix>.zip`.
+This command does not upload or submit the extension to either store.
+
 ## GitHub and privacy policy URL
 
 - Source: [https://github.com/miss55/happy-tab](https://github.com/miss55/happy-tab)

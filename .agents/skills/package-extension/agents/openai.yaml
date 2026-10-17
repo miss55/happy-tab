@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tabvia 商店打包"
+  short_description: "运行测试与生产构建，校验并生成 Chrome Web Store 提交 ZIP"
+  default_prompt: "使用 $package-extension 为当前 Tabvia 项目构建并校验商店提交 ZIP，给我生成文件的路径。"
