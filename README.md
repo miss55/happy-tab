@@ -1,6 +1,6 @@
 # Tabvia
 
-Tabvia is a bookmark manager that replaces the browser new tab page.
+Tabvia is a bookmark manager that replaces the browser new tab page. The extension version is 0.2.0. See [CHANGELOG.md](./CHANGELOG.md).
 
 Save and group links locally, import or export a JSON backup, or optionally sync a snapshot to storage you already own. The extension is local-first: no login and no first-party backend. The UI is available in English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, and German.
 
@@ -70,9 +70,11 @@ Implemented:
 - Create, complete/uncomplete, edit, delete, and drag-sort Todos by `sort_order`.
 - Local business data writes go through repository layers before Dexie.
 - English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, and German extension UI with browser-language detection and a locally persisted language preference.
-- Versioned JSON export and validated merge/replace import for local Link, Todo, and usage data.
-- System, light, dark, and custom-color extension themes persisted locally.
-- Optional snapshot sync to JSONBin, GitHub Gist, Cloudflare KV, Upstash Redis, or a custom REST endpoint.
+- Versioned JSON export and validated merge/replace import for local Links, Todos, usage stats, and quick-nav shortcuts. Older backups without shortcuts still import.
+- Theme styles (soft, minimal, glass, fluent, oled, cyber), light/dark/system mode, accent palettes, bundled wallpapers, and a local custom background. The saved appearance is painted before the app bundle loads.
+- Quick navigation dock above the bookmarks. Add a shortcut by URL, or by dragging a browser tab or saved link onto the dock. Reorder, edit, and remove shortcuts locally, and undo a removal during the current page session.
+- Link groups laid out in a masonry grid, with distinct pastel header colors assigned automatically and adjustable per group.
+- Optional snapshot sync to JSONBin, GitHub Gist, Cloudflare KV, Upstash Redis, or a custom REST endpoint. Quick-nav shortcuts are included in that snapshot.
 
 Incomplete or awaiting verification:
 

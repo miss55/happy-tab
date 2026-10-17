@@ -40,6 +40,7 @@ Business data is stored in IndexedDB through Dexie:
 
 - `link_groups`
 - `links`
+- `nav_shortcuts`
 - `todos`
 - `usage_stats`
 - `sync_queue`
@@ -54,6 +55,7 @@ Current Dexie database:
 - version 3: adds `link_groups`, `usage_stats`, and `sync_queue`, and copies
   legacy Link Groups into `link_groups`
 - version 4: removes the legacy `linkGroups` table after the copy step
+- version 6: adds `nav_shortcuts`
 
 The v3 and v4 steps must stay separate so an upgrade from v1/v2 can read the
 legacy table before it is removed.
@@ -72,6 +74,7 @@ Use `chrome.storage.local` only for lightweight settings:
 - Link: saved user-managed item persisted by Tabvia.
 - Link Group: user-defined group containing saved Links.
 - Todo: local user-created task.
+- Quick nav shortcut: a site pinned in the horizontal dock. It is separate from Link Groups.
 
 Browser Tabs and Links are separate concepts and should stay separate in code and UI copy.
 

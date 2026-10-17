@@ -22,7 +22,10 @@ Source: [https://github.com/miss55/happy-tab](https://github.com/miss55/happy-ta
 - Supports English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, and German UI; initially follows the browser language, and remembers manual language changes locally.
 - Exports active local business data to a versioned JSON backup.
 - Imports validated Tabvia backups in safe merge mode or confirmed replace mode.
-- Supports system, light, dark, and custom-color themes stored only in local extension settings.
+- Supports theme styles (soft, minimal, glass, fluent, oled, cyber), light/dark/system mode, accent palettes, bundled wallpapers, and a local custom background. Settings stay in local extension storage. A local boot script paints the saved appearance before the app bundle loads.
+- Pins sites in a quick-navigation dock above the bookmarks. Shortcuts can be added by URL or by dragging a browser tab or saved link onto the dock, then reordered, edited, or removed. A removal can be undone during the current page session.
+- Lays link groups out in a masonry grid and gives each group a pastel header color. Colors are assigned automatically and can be changed per group.
+- Includes active quick-nav shortcuts in the JSON backup and the optional snapshot sync. Backups written before quick nav omit `nav_shortcuts` and still import.
 
 ## Cloud Storage Sync
 
@@ -62,8 +65,8 @@ Run the extension tests:
 pnpm --filter @tabvia/extension test
 ```
 
-The migration suite verifies fresh installs and upgrades from database versions
-1, 2, and 3.
+The current Dexie schema is version 6, which adds `nav_shortcuts`. The migration
+suite verifies fresh installs and upgrades from database versions 1, 2, and 3.
 
 Validate the extension manifest:
 
@@ -88,7 +91,9 @@ Expected behavior:
 - Exporting local data downloads a `tabvia-backup-YYYY-MM-DD.json` file.
 - Merge import keeps unrelated local records; replace import requires confirmation and restores only the backup.
 - Invalid, unsupported, oversized, unsafe, or internally inconsistent backups do not change local data.
-- Theme changes apply immediately, survive refresh, and can be reset to system mode.
+- Theme changes apply immediately, survive refresh, and can be reset to system mode. A refresh keeps the saved appearance on the first paint.
+- Dragging a browser tab or saved link onto the quick-nav dock saves it as a shortcut. Managing the dock reorders, edits, and removes shortcuts without changing the dock height.
+- Link groups keep a masonry layout after refresh, and each group header keeps its saved color.
 - Clicking a Browser Tab switches to it.
 - Closing a Browser Tab removes it from Chrome and the list.
 - Saved Links persist after refreshing the new tab page.
