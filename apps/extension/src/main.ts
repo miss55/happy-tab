@@ -11,4 +11,7 @@ const bootstrap = async () => {
   createApp(App).use(createPinia()).mount("#app");
 };
 
-void bootstrap();
+void bootstrap().catch((error) => {
+  document.documentElement.removeAttribute("data-booting");
+  console.error("Unable to initialize Tabvia", error);
+});

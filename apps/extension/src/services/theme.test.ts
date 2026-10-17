@@ -46,6 +46,23 @@ describe("theme", () => {
     assetMocks.deleteThemeBackgroundAsset.mockResolvedValue(undefined);
   });
 
+  it("applies stored colors before a slow background asset read completes", async () => {
+    let finishAsset!: (value: undefined) => void;
+    assetMocks.getThemeBackgroundAsset.mockReturnValue(new Promise((resolve) => { finishAsset = resolve; }));
+    storageMocks.getLocalStorageValue.mockResolvedValue({ mode: "dark", style: "soft" });
+    const root = { dataset: {} as Record<string, string>, style: { setProperty: vi.fn(), removeProperty: vi.fn() } };
+    vi.stubGlobal("document", { documentElement: root });
+    try {
+      const initialized = initializeTheme();
+      await vi.waitFor(() => expect(root.dataset.theme).toBe("dark"));
+      finishAsset(undefined);
+      await initialized;
+    } finally {
+      finishAsset(undefined);
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("normalizes unsupported settings and invalid colors", () => {
     expect(
       normalizeThemeSettings({
@@ -161,8 +178,10 @@ describe("theme", () => {
     });
   });
 
-  it("forces OLED to dark while leaving other styles on the requested mode", () => {
+  it("resolves inherently dark styles consistently with their rendered surfaces", () => {
     expect(resolveThemeMode("light", "oled")).toBe("dark");
+    expect(resolveThemeMode("light", "cyber")).toBe("dark");
+    expect(resolveThemeMode("system", "cyber")).toBe("dark");
     expect(resolveThemeMode("light", "soft")).toBe("light");
   });
 

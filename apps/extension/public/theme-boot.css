@@ -1,0 +1,12 @@
+/* Available before the application bundle and async storage initialization. */
+html { background: #f5f7fb; color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  html { background: #0b1120; color-scheme: dark; }
+}
+:root[data-booting] #app { visibility: hidden; }
+:root[data-booting] *,
+:root[data-booting] *::before,
+:root[data-booting] *::after {
+  transition: none !important;
+  animation: none !important;
+}

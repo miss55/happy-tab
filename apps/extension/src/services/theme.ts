@@ -181,7 +181,7 @@ const prefersDarkScheme = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 export const resolveThemeMode = (mode: ThemeMode, style: ThemeStyle): "light" | "dark" => {
-  if (style === "oled") {
+  if (style === "oled" || style === "cyber") {
     return "dark";
   }
 
@@ -407,6 +407,7 @@ const buildAccentVariables = (accent: string, isDark: boolean) => {
 };
 
 const activeTheme = ref<ThemeSettings>(normalizeThemeSettings(defaultThemeSettings));
+const resolvedThemeMode = ref<"light" | "dark">("light");
 const activeBackgroundAsset = ref<ThemeBackgroundAsset | null>(null);
 const activeBackgroundUrl = ref<string | null>(null);
 let systemThemeMedia: MediaQueryList | null = null;
@@ -496,6 +497,7 @@ const applyTheme = (settings: ThemeSettings) => {
   const resolvedMode = resolveThemeMode(settings.mode, settings.style);
   const background = resolveBackgroundImage(settings);
   const isDark = resolvedMode === "dark";
+  resolvedThemeMode.value = resolvedMode;
 
   root.dataset.theme = resolvedMode;
   root.dataset.themeMode = resolvedMode;
@@ -515,12 +517,29 @@ const applyTheme = (settings: ThemeSettings) => {
   for (const property of INLINE_THEME_PROPERTIES) {
     root.style.removeProperty(property);
   }
+  root.style.removeProperty("background-color");
 
   if (settings.palette === "custom") {
     const variables = buildAccentVariables(settings.custom.accent, isDark);
     for (const [property, value] of Object.entries(variables)) {
       root.style.setProperty(property, value);
     }
+  }
+
+  try {
+    const wallpaper = settings.background.type === "wallpaper"
+      ? getBuiltInWallpaper(settings.background.wallpaperId)?.backgroundUrl : undefined;
+    window.localStorage.setItem("tabvia_theme_paint_v1", JSON.stringify({
+      version: 1,
+      mode: resolvedMode,
+      modeSetting: settings.mode,
+      style: settings.style,
+      baseColor: getComputedStyle(root).getPropertyValue("--theme-bg").trim(),
+      wallpaper,
+      overlay: background.overlay / 100
+    }));
+  } catch {
+    // Chrome storage remains authoritative; the optional paint hint may be blocked.
   }
 };
 
@@ -554,10 +573,11 @@ const bindSystemThemeListener = () => {
 };
 
 export const initializeTheme = async () => {
-  const [storedTheme, storedBackgroundAsset] = await Promise.all([
-    getLocalStorageValue<unknown>(THEME_STORAGE_KEY).catch(() => undefined),
-    getThemeBackgroundAsset().catch(() => undefined)
-  ]);
+  const assetRequest = getThemeBackgroundAsset().catch(() => undefined);
+  const storedTheme = await getLocalStorageValue<unknown>(THEME_STORAGE_KEY).catch(() => undefined);
+  // Apply colors without waiting for IndexedDB or custom image decoding.
+  applyTheme(normalizeThemeSettings(storedTheme, { hasCustomImage: true }));
+  const storedBackgroundAsset = await assetRequest;
   const usableBackgroundAsset = isUsableBackgroundAsset(storedBackgroundAsset)
     ? storedBackgroundAsset
     : null;
@@ -566,7 +586,31 @@ export const initializeTheme = async () => {
     hasCustomImage: Boolean(usableBackgroundAsset)
   });
   applyTheme(activeTheme.value);
+  await prepareInitialBackground(activeTheme.value);
   bindSystemThemeListener();
+};
+
+const prepareInitialBackground = async (settings: ThemeSettings): Promise<void> => {
+  const src = settings.background.type === "wallpaper"
+    ? getBuiltInWallpaper(settings.background.wallpaperId)?.backgroundUrl
+    : settings.background.type === "custom-image" ? activeBackgroundUrl.value : undefined;
+  if (!src || typeof Image === "undefined") return;
+  await new Promise<void>((resolve) => {
+    const image = new Image();
+    const finish = () => {
+      clearTimeout(timer);
+      image.onload = null;
+      image.onerror = null;
+      resolve();
+    };
+    const timer = setTimeout(finish, 1500);
+    image.onload = () => {
+      if (image.decode) void image.decode().catch(() => {}).then(finish);
+      else finish();
+    };
+    image.onerror = finish;
+    image.src = src;
+  });
 };
 
 export const setThemeMode = async (mode: ThemeMode) => {
@@ -732,6 +776,7 @@ export const resetTheme = async () => {
 
 export const useTheme = () => ({
   settings: readonly(activeTheme),
+  resolvedMode: readonly(resolvedThemeMode),
   backgroundAsset: readonly(activeBackgroundAsset),
   backgroundUrl: readonly(activeBackgroundUrl),
   setThemeMode,
