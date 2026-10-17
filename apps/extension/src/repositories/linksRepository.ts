@@ -1,4 +1,9 @@
 import { tabviaDb } from "@/db/tabviaDb";
+import {
+  chooseGroupColorIndex,
+  formatGroupColorIndex,
+  parseGroupColorIndex
+} from "@/services/groupHeaderColors";
 import type {
   CreateLinkGroupInput,
   CreateLinkInput,
@@ -100,12 +105,24 @@ export const createLinkGroup = async (input: CreateLinkGroupInput): Promise<Link
   }
 
   const timestamp = nowIso();
+  const existingGroups = (await tabviaDb.link_groups.toArray())
+    .filter((group) => group.deleted_at === undefined)
+    .sort((left, right) => left.sort_order - right.sort_order || left.created_at.localeCompare(right.created_at));
+  const requestedColor = parseGroupColorIndex(input.color);
+  const colorIndex =
+    requestedColor ??
+    chooseGroupColorIndex(
+      existingGroups.flatMap((group) => {
+        const index = parseGroupColorIndex(group.color);
+        return index === undefined ? [] : [index];
+      })
+    );
   const group: LinkGroup = {
     id: createId(),
     name,
     description: input.description,
     icon: input.icon,
-    color: input.color,
+    color: formatGroupColorIndex(colorIndex),
     sort_order: await getNextGroupSortOrder(),
     created_at: timestamp,
     updated_at: timestamp
@@ -166,7 +183,42 @@ export const updateLinkGroup = async (input: UpdateLinkGroupInput): Promise<void
 
   await tabviaDb.link_groups.update(input.id, {
     name,
+    color: formatGroupColorIndex(input.colorIndex),
     updated_at: nowIso()
+  });
+};
+
+export const assignMissingGroupColors = async (): Promise<void> => {
+  const groups = (await tabviaDb.link_groups.toArray())
+    .filter((group) => group.deleted_at === undefined)
+    .sort((left, right) => left.sort_order - right.sort_order || left.created_at.localeCompare(right.created_at));
+  const usedIndexes: number[] = [];
+  const missing: LinkGroup[] = [];
+
+  for (const group of groups) {
+    const index = parseGroupColorIndex(group.color);
+    if (index === undefined) {
+      missing.push(group);
+    } else {
+      usedIndexes.push(index);
+    }
+  }
+
+  if (missing.length === 0) {
+    return;
+  }
+
+  const timestamp = nowIso();
+
+  await tabviaDb.transaction("rw", tabviaDb.link_groups, async () => {
+    for (const group of missing) {
+      const index = chooseGroupColorIndex(usedIndexes);
+      usedIndexes.push(index);
+      await tabviaDb.link_groups.update(group.id, {
+        color: formatGroupColorIndex(index),
+        updated_at: timestamp
+      });
+    }
   });
 };
 

@@ -5,6 +5,7 @@ import {
   createLink,
   createLinkGroup,
   ensureDefaultLinkGroup,
+  assignMissingGroupColors,
   incrementLinkOpenStats,
   listLinkGroupsWithLinks,
   reorderLinkGroups,
@@ -50,6 +51,7 @@ export const useLinksStore = defineStore("links", {
 
       try {
         await ensureDefaultLinkGroup();
+        await assignMissingGroupColors();
         this.groups = await listLinkGroupsWithLinks();
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.loadLinks");
@@ -88,11 +90,11 @@ export const useLinksStore = defineStore("links", {
       return this.addLink(browserTabToLinkInput(tab, groupId));
     },
 
-    async renameGroup(groupId: string, name: string) {
+    async updateGroup(groupId: string, name: string, colorIndex: number) {
       this.errorMessage = "";
 
       try {
-        await updateLinkGroup({ id: groupId, name });
+        await updateLinkGroup({ id: groupId, name, colorIndex });
         await this.loadLinks();
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.renameGroup");
@@ -160,12 +162,17 @@ export const useLinksStore = defineStore("links", {
       }
     },
 
-    async openLink(link: Link) {
+    async recordLinkOpen(link: Link) {
       await incrementLinkOpenStats(link.id);
       await this.loadLinks();
+    },
+
+    async openLink(link: Link, options?: { active?: boolean }) {
+      await this.recordLinkOpen(link);
+      const active = options?.active !== false;
 
       if (typeof chrome !== "undefined" && chrome.tabs?.create) {
-        await chrome.tabs.create({ url: link.url });
+        await chrome.tabs.create({ url: link.url, active });
         return;
       }
 

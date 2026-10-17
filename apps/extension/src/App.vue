@@ -10,22 +10,35 @@ import CloudflareSetupGuide from "@/components/CloudflareSetupGuide.vue";
 import LanguageMenu from "@/components/LanguageMenu.vue";
 import AboutDialog from "@/components/AboutDialog.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import QuickNavDock from "@/components/QuickNavDock.vue";
+import LinkDragPreview from "@/components/LinkDragPreview.vue";
 import {
   activateBrowserTab,
   closeBrowserTab,
-  getBrowserWindowGroups
+  getBrowserWindowGroups,
+  subscribeBrowserTabUpdates
 } from "@/services/browserTabs";
 import {
   downloadTabviaBackup,
   readTabviaBackupFile,
   restoreTabviaBackup
 } from "@/services/dataPortability";
+import {
+  GROUP_HEADER_COLOR_COUNT,
+  GROUP_HEADER_FAMILY_COUNT,
+  chooseGroupColorIndex,
+  groupHeaderStyle,
+  groupHeaderTone,
+  resolveGroupColorIndex
+} from "@/services/groupHeaderColors";
+import { bindLinkGroupMasonry, type LinkGroupMasonryBinding } from "@/services/linkGroupMasonry";
 import { useTheme } from "@/services/theme";
 import { useWorkspaceSettings } from "@/services/workspaceSettings";
 import { builtInWallpapers } from "@/services/themePresets";
 import { useI18n, type SupportedLocale, type TranslationParams } from "@/i18n";
 import type { MessageKey } from "@/i18n/messages";
 import { useLinksStore } from "@/stores/linksStore";
+import { useNavStore } from "@/stores/navStore";
 import { useSyncStore } from "@/stores/syncStore";
 import { useTodosStore } from "@/stores/todosStore";
 import { providerResources } from "@/services/sync/providerResources";
@@ -55,10 +68,12 @@ import {
 
 const syncStore = useSyncStore();
 const linksStore = useLinksStore();
+const navStore = useNavStore();
 const todosStore = useTodosStore();
 const { formatDateTime, locale, setLocale, t } = useI18n();
 const {
   settings: themeSettings,
+  resolvedMode: resolvedThemeMode,
   backgroundAsset: themeBackgroundAsset,
   setThemeMode,
   setThemeStyle,
@@ -85,6 +100,7 @@ const {
   defaultGroupId,
   linkCount
 } = storeToRefs(linksStore);
+const { errorMessage: navErrorMessage, isLoading: isNavLoading } = storeToRefs(navStore);
 const {
   todos,
   isLoading: isTodosLoading,
@@ -99,15 +115,22 @@ const tabsErrorMessage = ref<MessageKey | "">("");
 const localeErrorMessage = ref("");
 const workspaceErrorMessage = ref("");
 const selectedGroupId = ref("");
-const newGroupName = ref("");
+const ghostGroupName = ref("");
+const ghostGroupInput = ref<HTMLInputElement | null>(null);
+const isNamingGhostGroup = ref(false);
+let ghostGroupCommitLock = false;
 const linkForm = reactive({
   title: "",
   url: ""
 });
 const editingGroupId = ref("");
 const groupEditName = ref("");
+const groupEditColorIndex = ref(0);
+const groupColorIndexes = Array.from({ length: GROUP_HEADER_COLOR_COUNT }, (_, index) => index);
 const editingLinkId = ref("");
 const draggingGroupId = ref("");
+const linkGroupsElement = ref<HTMLElement | null>(null);
+let linkGroupMasonry: LinkGroupMasonryBinding | null = null;
 const draggingLink = ref<{ linkId: string; sourceGroupId: string } | null>(null);
 type DropPlacement = "before" | "after";
 const groupDropTarget = ref<{ groupId: string; placement: DropPlacement } | null>(null);
@@ -117,6 +140,15 @@ const linkDropTarget = ref<{
   placement: DropPlacement;
 } | null>(null);
 const draggingBrowserTab = ref<BrowserTab | null>(null);
+const linkDragPreview = ref<InstanceType<typeof LinkDragPreview> | null>(null);
+const incomingSavedLink = computed(() => {
+  if (!draggingLink.value) {
+    return null;
+  }
+
+  const group = linkGroups.value.find((item) => item.id === draggingLink.value?.sourceGroupId);
+  return group?.links.find((link) => link.id === draggingLink.value?.linkId) ?? null;
+});
 const browserTabDropGroupId = ref("");
 const tabSearchQuery = ref("");
 const savedTabFeedback = ref<{ title: string; group: string } | null>(null);
@@ -242,6 +274,7 @@ const openTodoDialog = async () => {
   isThemePanelOpen.value = false;
   isDataPanelOpen.value = false;
   isAboutPanelOpen.value = false;
+  isNamingGhostGroup.value = false;
   newTodoTitle.value = "";
   isTodoDialogOpen.value = true;
   await nextTick();
@@ -479,6 +512,8 @@ const loadBrowserTabs = async () => {
   }
 };
 
+let unsubscribeBrowserTabUpdates = () => {};
+
 const refreshBrowserTabsWhenVisible = () => {
   if (document.visibilityState === "visible") {
     void loadBrowserTabs();
@@ -518,31 +553,20 @@ const showSavedTabFeedback = (title: string, group: string) => {
 };
 
 const arrivingLinkId = ref("");
-const receivedGroupId = ref("");
 let arrivingLinkTimer = 0;
-let receivedGroupTimer = 0;
 
 const clearDropArrivalFeedback = () => {
   window.clearTimeout(arrivingLinkTimer);
-  window.clearTimeout(receivedGroupTimer);
   arrivingLinkTimer = 0;
-  receivedGroupTimer = 0;
   arrivingLinkId.value = "";
-  receivedGroupId.value = "";
 };
 
-const markDroppedBookmark = (linkId: string, groupId: string) => {
+const markDroppedBookmark = (linkId: string) => {
   window.clearTimeout(arrivingLinkTimer);
-  window.clearTimeout(receivedGroupTimer);
   arrivingLinkId.value = linkId;
-  receivedGroupId.value = groupId;
   arrivingLinkTimer = window.setTimeout(() => {
     arrivingLinkId.value = "";
     arrivingLinkTimer = 0;
-  }, 420);
-  receivedGroupTimer = window.setTimeout(() => {
-    receivedGroupId.value = "";
-    receivedGroupTimer = 0;
   }, 420);
 };
 
@@ -556,7 +580,7 @@ const saveBrowserTabToGroup = async (tab: BrowserTab, groupId: string) => {
   selectedGroupId.value = groupId;
 
   if (link) {
-    markDroppedBookmark(link.id, groupId);
+    markDroppedBookmark(link.id);
   }
 
   const groupName = linkGroups.value.find((group) => group.id === groupId)?.name || t("common.group");
@@ -567,10 +591,39 @@ const saveTabAsLink = async (tab: BrowserTab) => {
   await saveBrowserTabToGroup(tab, activeGroupId.value);
 };
 
-const addLinkGroup = async () => {
-  const group = await linksStore.addGroup(newGroupName.value);
-  selectedGroupId.value = group.id;
-  newGroupName.value = "";
+const openGhostGroupNaming = async () => {
+  ghostGroupName.value = "";
+  isNamingGhostGroup.value = true;
+  await nextTick();
+  ghostGroupInput.value?.focus();
+};
+
+const closeGhostGroupNaming = () => {
+  isNamingGhostGroup.value = false;
+  ghostGroupName.value = "";
+};
+
+const commitGhostGroup = async () => {
+  if (ghostGroupCommitLock) {
+    return;
+  }
+
+  const name = ghostGroupName.value.trim();
+  if (!name) {
+    return;
+  }
+
+  ghostGroupCommitLock = true;
+
+  try {
+    const group = await linksStore.addGroup(name);
+    selectedGroupId.value = group.id;
+    closeGhostGroupNaming();
+  } catch {
+    ghostGroupName.value = name;
+  } finally {
+    ghostGroupCommitLock = false;
+  }
 };
 
 const addCustomLink = async () => {
@@ -588,19 +641,41 @@ const addCustomLink = async () => {
   linkForm.url = "";
 };
 
-const openSavedLink = async (link: Link) => {
+const isPlainPrimaryClick = (event: MouseEvent) =>
+  event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+
+const openSavedLink = async (event: MouseEvent, link: Link) => {
+  if (!isPlainPrimaryClick(event)) {
+    if (event.button === 0 && (event.metaKey || event.ctrlKey || event.shiftKey)) {
+      void linksStore.recordLinkOpen(link);
+    }
+    return;
+  }
+
+  event.preventDefault();
   await linksStore.openLink(link);
+};
+
+const openSavedLinkFromAuxClick = (event: MouseEvent, link: Link) => {
+  if (event.button !== 1) {
+    return;
+  }
+
+  event.preventDefault();
+  void linksStore.openLink(link, { active: false });
 };
 
 const startEditingGroup = (group: LinkGroupWithLinks) => {
   editingLinkId.value = "";
   editingGroupId.value = group.id;
   groupEditName.value = group.name;
+  groupEditColorIndex.value = resolveGroupColorIndex(group.color, group.id);
 };
 
 const cancelEditingGroup = () => {
   editingGroupId.value = "";
   groupEditName.value = "";
+  groupEditColorIndex.value = 0;
 };
 
 const toggleEditingGroup = (group: LinkGroupWithLinks) => {
@@ -617,8 +692,32 @@ const saveGroupEdit = async () => {
     return;
   }
 
-  await linksStore.renameGroup(editingGroupId.value, groupEditName.value);
+  await linksStore.updateGroup(editingGroupId.value, groupEditName.value, groupEditColorIndex.value);
   cancelEditingGroup();
+};
+
+const groupHeaderStyleFor = (group: LinkGroupWithLinks) => {
+  const colorIndex =
+    editingGroupId.value === group.id
+      ? groupEditColorIndex.value
+      : resolveGroupColorIndex(group.color, group.id);
+
+  return groupHeaderStyle(groupHeaderTone(colorIndex, resolvedThemeMode.value));
+};
+
+const groupColorSwatchStyle = (index: number) => {
+  const tone = groupHeaderTone(index, resolvedThemeMode.value);
+  return {
+    background: tone.top
+  };
+};
+
+const suggestGroupColor = () => {
+  groupEditColorIndex.value = chooseGroupColorIndex(
+    linkGroups.value
+      .filter((group) => group.id !== editingGroupId.value)
+      .map((group) => resolveGroupColorIndex(group.color, group.id))
+  );
 };
 
 const resolveConfirmRequest = (confirmed: boolean) => {
@@ -722,6 +821,7 @@ const startBrowserTabDrag = (event: DragEvent, tab: BrowserTab) => {
     return;
   }
 
+  linkDragPreview.value?.start(event, { title: tab.title, url: tab.url, icon: tab.favIconUrl });
   clearBookmarkDropTargets();
   draggingBrowserTab.value = tab;
   clearSavedTabFeedback();
@@ -878,6 +978,7 @@ const endGroupDrag = () => {
 };
 
 const startLinkDrag = (event: DragEvent, group: LinkGroupWithLinks, link: Link) => {
+  linkDragPreview.value?.start(event, { title: link.title, url: link.url, icon: link.favicon_url });
   clearBookmarkDropTargets();
   draggingLink.value = {
     linkId: link.id,
@@ -1395,6 +1496,7 @@ const closeBookmarkCreateOnEscape = (event: KeyboardEvent) => {
 
   if (
     isTodoDialogOpen.value ||
+    isNamingGhostGroup.value ||
     isSyncPanelOpen.value ||
     isThemePanelOpen.value ||
     isDataPanelOpen.value ||
@@ -1417,17 +1519,57 @@ watch(
   { immediate: true }
 );
 
-onMounted(() => {
-  void loadBrowserTabs();
-  void linksStore.loadLinks();
-  void todosStore.loadTodos();
+watch(
+  () => [workspaceSettings.value.showTodos, linkGroups.value.map((group) => group.id).join("\0")],
+  () => {
+    linkGroupMasonry?.refresh();
+  },
+  { flush: "post" }
+);
+
+watch(
+  draggingGroupId,
+  (groupId) => {
+    if (!groupId) {
+      linkGroupMasonry?.refresh();
+    }
+  },
+  { flush: "post" }
+);
+
+onMounted(async () => {
+  unsubscribeBrowserTabUpdates = subscribeBrowserTabUpdates((updated) => {
+    for (const group of windowGroups.value) {
+      const tab = group.tabs.find((item) => item.id === updated.id);
+      if (tab) Object.assign(tab, updated);
+    }
+  });
+  if (linkGroupsElement.value) {
+    linkGroupMasonry = bindLinkGroupMasonry(
+      linkGroupsElement.value,
+      () => Boolean(draggingGroupId.value)
+    );
+  }
+
+  const initialWorkspace = Promise.allSettled([
+    loadBrowserTabs(), linksStore.loadLinks(), navStore.loadShortcuts(), todosStore.loadTodos()
+  ]);
   void syncStore.loadConfig();
   document.addEventListener("visibilitychange", refreshBrowserTabsWhenVisible);
   document.addEventListener("pointerdown", closeBookmarkCreateOnOutsidePointer);
   document.addEventListener("keydown", closeBookmarkCreateOnEscape);
+  await initialWorkspace;
+  await nextTick();
+  try {
+    linkGroupMasonry?.refresh();
+  } finally {
+    document.documentElement.removeAttribute("data-booting");
+  }
 });
 
 onBeforeUnmount(() => {
+  unsubscribeBrowserTabUpdates();
+  linkGroupMasonry?.disconnect();
   document.removeEventListener("visibilitychange", refreshBrowserTabsWhenVisible);
   document.removeEventListener("pointerdown", closeBookmarkCreateOnOutsidePointer);
   document.removeEventListener("keydown", closeBookmarkCreateOnEscape);
@@ -2173,9 +2315,10 @@ onBeforeUnmount(() => {
     </Transition>
 
     <section class="status-row" aria-live="polite">
-      <span v-if="isTabsLoading || isLinksLoading || (workspaceSettings.showTodos && isTodosLoading)">{{ t("status.loadingWorkspace") }}</span>
+      <span v-if="isTabsLoading || isLinksLoading || isNavLoading || (workspaceSettings.showTodos && isTodosLoading)">{{ t("status.loadingWorkspace") }}</span>
       <span v-if="tabsErrorMessage" class="error-text">{{ t(tabsErrorMessage) }}</span>
       <span v-if="linksErrorMessage" class="error-text">{{ t(linksErrorMessage) }}</span>
+      <span v-if="navErrorMessage" class="error-text">{{ t(navErrorMessage) }}</span>
       <span v-if="workspaceSettings.showTodos && todosErrorMessage" class="error-text">{{ t(todosErrorMessage) }}</span>
       <span v-if="localeErrorMessage" class="error-text">{{ localeErrorMessage }}</span>
       <span v-if="workspaceErrorMessage" class="error-text">{{ workspaceErrorMessage }}</span>
@@ -2242,6 +2385,7 @@ onBeforeUnmount(() => {
                     img-class="favicon"
                     :page-url="tab.url"
                     :stored-url="tab.favIconUrl"
+                    known-icon-only
                   />
 
                   <span class="tab-copy">
@@ -2289,13 +2433,13 @@ onBeforeUnmount(() => {
       </section>
 
       <aside class="workspace-column saved-links-column">
+        <QuickNavDock :incoming-tab="draggingBrowserTab" :incoming-link="incomingSavedLink" :available-tabs="windowGroups.flatMap(group => group.tabs)" :confirm-remove="askConfirm" />
+
         <header class="section-header">
           <div>
             <h2>{{ t("top.bookmarks") }}</h2>
             <p>{{ t("bookmarks.summary", { count: linkCount }) }}</p>
           </div>
-        </header>
-
         <div
           ref="bookmarkCreatePanel"
           class="bookmark-create-panel"
@@ -2324,19 +2468,6 @@ onBeforeUnmount(() => {
               id="bookmark-create-content"
               class="bookmark-create-content"
             >
-            <form class="inline-form" @submit.prevent="addLinkGroup">
-              <label for="group-name">{{ t("bookmarks.newGroup") }}</label>
-              <div class="form-row">
-                <input
-                  id="group-name"
-                  v-model="newGroupName"
-                  type="text"
-                  :placeholder="t('bookmarks.groupPlaceholder')"
-                />
-                <button type="submit">{{ t("common.add") }}</button>
-              </div>
-            </form>
-
             <form class="stacked-form" @submit.prevent="addCustomLink">
               <label for="target-group">{{ t("bookmarks.targetGroup") }}</label>
               <select id="target-group" v-model="selectedGroupId">
@@ -2361,8 +2492,10 @@ onBeforeUnmount(() => {
           </div>
           </Transition>
         </div>
+        </header>
 
         <section
+          ref="linkGroupsElement"
           class="link-groups"
           :class="{
             'is-dragging-group': Boolean(draggingGroupId),
@@ -2481,7 +2614,6 @@ onBeforeUnmount(() => {
               selected: activeGroupId === group.id,
               'browser-tab-drop-target': browserTabDropGroupId === group.id,
               'link-drop-target': linkDropTarget?.groupId === group.id,
-              'just-received': receivedGroupId === group.id,
               'group-drop-before':
                 groupDropTarget?.groupId === group.id && groupDropTarget.placement === 'before',
               'group-drop-after':
@@ -2491,7 +2623,7 @@ onBeforeUnmount(() => {
             @dragover="handleGroupDragOver($event, group)"
             @drop="dropGroup($event, group)"
           >
-            <header class="link-group-header">
+            <header class="link-group-header" :style="groupHeaderStyleFor(group)">
               <div class="link-group-heading">
                 <h3>{{ group.name }}</h3>
                 <span>{{ t("bookmarks.linkCount", { count: group.links.length }) }}</span>
@@ -2531,7 +2663,7 @@ onBeforeUnmount(() => {
               </div>
             </header>
 
-            <form v-if="editingGroupId === group.id" class="edit-form" @submit.prevent="saveGroupEdit">
+            <form v-if="editingGroupId === group.id" class="edit-form group-edit-form" @submit.prevent="saveGroupEdit">
               <label :for="`edit-group-${group.id}`">{{ t("bookmarks.groupName") }}</label>
               <div class="form-row">
                 <input :id="`edit-group-${group.id}`" v-model="groupEditName" type="text" />
@@ -2540,6 +2672,39 @@ onBeforeUnmount(() => {
                   {{ t("common.cancel") }}
                 </button>
               </div>
+              <p :id="`edit-group-color-${group.id}`" class="group-color-label">{{ t("bookmarks.groupColor") }}</p>
+              <button class="group-color-auto secondary-form-button" type="button" @click="suggestGroupColor">
+                {{ t("bookmarks.autoGroupColor") }}
+              </button>
+              <div class="group-color-picker" role="group" :aria-labelledby="`edit-group-color-${group.id}`">
+                <button
+                  v-for="colorIndex in groupColorIndexes.slice(0, GROUP_HEADER_FAMILY_COUNT)"
+                  :key="colorIndex"
+                  class="group-color-swatch"
+                  type="button"
+                  :class="{ selected: groupEditColorIndex === colorIndex }"
+                  :style="groupColorSwatchStyle(colorIndex)"
+                  :aria-pressed="groupEditColorIndex === colorIndex"
+                  :aria-label="t('bookmarks.groupColorOption', { index: colorIndex + 1 })"
+                  @click="groupEditColorIndex = colorIndex"
+                ></button>
+              </div>
+              <details class="group-color-variants" :open="groupEditColorIndex >= GROUP_HEADER_FAMILY_COUNT">
+                <summary>{{ t("bookmarks.moreGroupColors") }}</summary>
+                <div class="group-color-picker" role="group" :aria-labelledby="`edit-group-color-${group.id}`">
+                  <button
+                    v-for="colorIndex in groupColorIndexes.slice(GROUP_HEADER_FAMILY_COUNT)"
+                    :key="colorIndex"
+                    class="group-color-swatch"
+                    type="button"
+                    :class="{ selected: groupEditColorIndex === colorIndex }"
+                    :style="groupColorSwatchStyle(colorIndex)"
+                    :aria-pressed="groupEditColorIndex === colorIndex"
+                    :aria-label="t('bookmarks.groupColorOption', { index: colorIndex + 1 })"
+                    @click="groupEditColorIndex = colorIndex"
+                  ></button>
+                </div>
+              </details>
             </form>
 
             <ul
@@ -2600,11 +2765,13 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div v-else class="saved-link-content">
-                  <button
+                  <a
                     class="saved-link-button"
-                    type="button"
+                    :href="link.url"
                     :title="link.title"
-                    @click="openSavedLink(link)"
+                    draggable="false"
+                    @click="openSavedLink($event, link)"
+                    @auxclick="openSavedLinkFromAuxClick($event, link)"
                   >
                     <FaviconImage
                       img-class="favicon saved-link-favicon"
@@ -2628,7 +2795,7 @@ onBeforeUnmount(() => {
                         </template>
                       </span>
                     </span>
-                  </button>
+                  </a>
 
                 </div>
 
@@ -2671,6 +2838,36 @@ onBeforeUnmount(() => {
               {{ t("bookmarks.dropHint") }}
             </p>
           </article>
+
+          <article class="link-group link-group-ghost" :class="{ naming: isNamingGhostGroup }">
+            <button v-if="!isNamingGhostGroup" type="button" class="ghost-group-trigger" @click="openGhostGroupNaming">
+              <span class="ghost-group-plus" aria-hidden="true">
+                <RowActionIcon name="plus" />
+              </span>
+              <span class="ghost-group-title">{{ t("bookmarks.newGroup") }}</span>
+              <span class="ghost-group-hint">{{ t("bookmarks.newGroupHint") }}</span>
+            </button>
+            <form v-else class="ghost-group-form" @submit.prevent="commitGhostGroup" @keydown.esc.stop.prevent="closeGhostGroupNaming">
+              <h3>{{ t("bookmarks.nameGroup") }}</h3>
+              <input
+                id="ghost-group-name"
+                ref="ghostGroupInput"
+                v-model="ghostGroupName"
+                type="text"
+                autocomplete="off"
+                :placeholder="t('bookmarks.groupPlaceholder')"
+                :aria-label="t('bookmarks.nameGroup')"
+              />
+              <div class="ghost-group-actions">
+                <button class="secondary-button" type="button" @click="closeGhostGroupNaming">
+                  {{ t("common.cancel") }}
+                </button>
+                <button class="primary-button" type="submit" :disabled="!ghostGroupName.trim()">
+                  {{ t("bookmarks.createGroup") }}
+                </button>
+              </div>
+            </form>
+          </article>
         </section>
 
         <div
@@ -2694,6 +2891,7 @@ onBeforeUnmount(() => {
 
     </section>
 
+    <LinkDragPreview ref="linkDragPreview" />
     <ConfirmDialog
       :open="Boolean(confirmRequest)"
       :title="confirmRequest?.title ?? ''"

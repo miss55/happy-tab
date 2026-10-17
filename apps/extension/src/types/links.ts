@@ -55,6 +55,7 @@ export type CreateLinkInput = CreateSavedLinkInput;
 export interface UpdateLinkGroupInput {
   id: string;
   name: string;
+  colorIndex: number;
 }
 
 export interface UpdateSavedLinkInput {
