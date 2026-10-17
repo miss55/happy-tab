@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getBrowserWindowGroups } from "@/services/browserTabs";
+import { getBrowserWindowGroups, subscribeBrowserTabUpdates } from "@/services/browserTabs";
 
 const stubChromeWindows = (windows: Array<Partial<chrome.windows.Window>>) => {
   vi.stubGlobal("chrome", {
@@ -23,6 +23,33 @@ const stubChrome = (tabs: Array<Partial<chrome.tabs.Tab>>) => {
     }
   ]);
 };
+
+describe("browser tab updates", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("delivers late favicons and URL changes, ignores unrelated updates, and unsubscribes", () => {
+    const addListener = vi.fn();
+    const removeListener = vi.fn();
+    vi.stubGlobal("chrome", { tabs: { onUpdated: { addListener, removeListener } } });
+    const onUpdate = vi.fn();
+    const unsubscribe = subscribeBrowserTabUpdates(onUpdate);
+    const listener = addListener.mock.calls[0][0];
+    const tab = { id: 3, windowId: 7, title: "Example", url: "https://example.com" };
+    listener(3, { audible: true }, tab);
+    expect(onUpdate).not.toHaveBeenCalled();
+    listener(3, { favIconUrl: "https://example.com/icon.png" }, { ...tab, favIconUrl: "https://example.com/icon.png" });
+    expect(onUpdate).toHaveBeenLastCalledWith(expect.objectContaining({ id: 3, favIconUrl: "https://example.com/icon.png" }));
+    listener(3, { url: "https://other.test" }, { ...tab, url: "https://other.test" });
+    expect(onUpdate).toHaveBeenLastCalledWith(expect.objectContaining({ url: "https://other.test", favIconUrl: undefined }));
+    unsubscribe();
+    expect(removeListener).toHaveBeenCalledWith(listener);
+  });
+
+  it("is safe outside Chrome", () => {
+    vi.stubGlobal("chrome", undefined);
+    expect(() => subscribeBrowserTabUpdates(vi.fn())()).not.toThrow();
+  });
+});
 
 describe("getBrowserWindowGroups", () => {
   afterEach(() => {

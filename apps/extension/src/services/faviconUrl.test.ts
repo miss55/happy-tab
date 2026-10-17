@@ -45,4 +45,15 @@ describe("faviconUrl", () => {
       []
     );
   });
+
+  it("prefers a known site icon to Chrome's potentially stale default", () => {
+    vi.stubGlobal("chrome", { runtime: { getURL: (path: string) => `chrome-extension://abc${path}` } });
+    expect(getFaviconCandidates("https://example.com", "https://example.com/icon.png")[0])
+      .toBe("https://example.com/icon.png");
+  });
+
+  it("does not request Chrome's default globe while a live tab has no icon", () => {
+    vi.stubGlobal("chrome", { runtime: { getURL: (path: string) => `chrome-extension://abc${path}` } });
+    expect(getFaviconCandidates("https://example.com", undefined, 32, true)).toEqual([]);
+  });
 });

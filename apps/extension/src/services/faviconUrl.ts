@@ -31,18 +31,20 @@ export const buildExtensionFaviconUrl = (pageUrl: string, size = 32): string | u
   return url.toString();
 };
 
-export const getFaviconCandidates = (pageUrl?: string, storedUrl?: string): string[] => {
+export const getFaviconCandidates = (pageUrl?: string, storedUrl?: string, size = 32, knownIconOnly = false): string[] => {
   const candidates: string[] = [];
   const page = pageUrl?.trim();
   const stored = storedUrl?.trim();
-  const extensionFavicon = page ? buildExtensionFaviconUrl(page) : undefined;
-
-  if (extensionFavicon) {
-    candidates.push(extensionFavicon);
-  }
+  const extensionFavicon = page ? buildExtensionFaviconUrl(page, size) : undefined;
 
   if (stored && isHttpUrl(stored) && !isPrivilegedFaviconUrl(stored) && !candidates.includes(stored)) {
     candidates.push(stored);
+  }
+
+  // A live tab without a favicon is still resolving its site icon. Chrome's
+  // favicon endpoint can return a successful default globe in that interval.
+  if (extensionFavicon && !knownIconOnly) {
+    candidates.push(extensionFavicon);
   }
 
   return candidates;

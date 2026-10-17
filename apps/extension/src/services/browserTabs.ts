@@ -83,3 +83,14 @@ export const closeBrowserTab = async (tabId: number): Promise<void> => {
 
   await chrome.tabs.remove(tabId);
 };
+
+export const subscribeBrowserTabUpdates = (onUpdate: (tab: BrowserTab) => void): (() => void) => {
+  if (typeof chrome === "undefined" || !chrome.tabs?.onUpdated) return () => {};
+  const listener = (_tabId: number, change: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+    if (!["favIconUrl", "url", "title", "status"].some((key) => key in change)) return;
+    const updated = toBrowserTab(tab);
+    if (updated) onUpdate(updated);
+  };
+  chrome.tabs.onUpdated.addListener(listener);
+  return () => chrome.tabs.onUpdated.removeListener(listener);
+};
