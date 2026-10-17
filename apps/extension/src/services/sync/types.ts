@@ -1,5 +1,6 @@
 import type { MessageKey } from "@/i18n/messages";
 import type { LinkGroup, SavedLink } from "@/types/links";
+import type { NavShortcut } from "@/types/navShortcuts";
 import type { TodoItem } from "@/types/todos";
 import type { UsageStat } from "@/types/usageStats";
 
@@ -19,6 +20,7 @@ export interface SyncSnapshot {
     links: SavedLink[];
     todos: TodoItem[];
     usage_stats?: UsageStat[];
+    nav_shortcuts?: NavShortcut[];
   };
 }
 

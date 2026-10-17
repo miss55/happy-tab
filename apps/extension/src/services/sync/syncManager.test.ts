@@ -5,7 +5,8 @@ vi.mock("@/db/tabviaDb", () => ({
     link_groups: { toArray: vi.fn().mockResolvedValue([]) },
     links: { toArray: vi.fn().mockResolvedValue([]) },
     todos: { toArray: vi.fn().mockResolvedValue([]) },
-    usage_stats: { toArray: vi.fn().mockResolvedValue([]) }
+    usage_stats: { toArray: vi.fn().mockResolvedValue([]) },
+    nav_shortcuts: { toArray: vi.fn().mockResolvedValue([]) }
   }
 }));
 

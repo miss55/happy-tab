@@ -46,6 +46,7 @@ const makeBackup = (): TabviaBackupV1 => ({
         updated_at: timestamp
       }
     ],
+    nav_shortcuts: [],
     usage_stats: [
       {
         id: "stat-imported",
@@ -203,7 +204,7 @@ describe("dataPortabilityRepository", () => {
     await expect(tabviaDb.sync_queue.toArray()).resolves.toEqual([
       expect.objectContaining({ id: "queue-unrelated-record" })
     ]);
-    expect(summary).toEqual({ link_groups: 1, links: 1, todos: 1, usage_stats: 1 });
+    expect(summary).toEqual({ link_groups: 1, links: 1, todos: 1, usage_stats: 1, nav_shortcuts: 0 });
   });
 
   it("replaces business data atomically and clears stale sync queue items", async () => {

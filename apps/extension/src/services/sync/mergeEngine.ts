@@ -1,4 +1,5 @@
 import type { LinkGroup, SavedLink } from "@/types/links";
+import type { NavShortcut } from "@/types/navShortcuts";
 import type { TodoItem } from "@/types/todos";
 import type { SyncSnapshot } from "./types";
 
@@ -36,6 +37,7 @@ export interface MergedSnapshotData {
   link_groups: LinkGroup[];
   links: SavedLink[];
   todos: TodoItem[];
+  nav_shortcuts?: NavShortcut[];
 }
 
 export const mergeSnapshots = (
@@ -45,11 +47,13 @@ export const mergeSnapshots = (
   const mergedGroups = mergeEntities(localData.link_groups, remoteSnapshot.data?.link_groups || []);
   const mergedLinks = mergeEntities(localData.links, remoteSnapshot.data?.links || []);
   const mergedTodos = mergeEntities(localData.todos, remoteSnapshot.data?.todos || []);
+  const mergedShortcuts = mergeEntities(localData.nav_shortcuts || [], remoteSnapshot.data?.nav_shortcuts || []);
 
   return {
     link_groups: mergedGroups,
     links: mergedLinks,
-    todos: mergedTodos
+    todos: mergedTodos,
+    nav_shortcuts: mergedShortcuts
   };
 };
 

@@ -1,6 +1,7 @@
 import { tabviaDb } from "@/db/tabviaDb";
 import type { MessageKey } from "@/i18n/messages";
 import type { LinkGroup, SavedLink } from "@/types/links";
+import type { NavShortcut } from "@/types/navShortcuts";
 import type { TodoItem } from "@/types/todos";
 import type { UsageStat } from "@/types/usageStats";
 
@@ -38,11 +39,12 @@ export const messageKeyFromSyncError = (error: unknown, fallback: MessageKey): M
 };
 
 export const buildLocalSnapshot = async (): Promise<SyncSnapshot> => {
-  const [link_groups, links, todos, usage_stats] = await Promise.all([
+  const [link_groups, links, todos, usage_stats, nav_shortcuts] = await Promise.all([
     tabviaDb.link_groups.toArray(),
     tabviaDb.links.toArray(),
     tabviaDb.todos.toArray(),
-    tabviaDb.usage_stats.toArray()
+    tabviaDb.usage_stats.toArray(),
+    tabviaDb.nav_shortcuts.toArray()
   ]);
 
   return {
@@ -52,7 +54,8 @@ export const buildLocalSnapshot = async (): Promise<SyncSnapshot> => {
       link_groups,
       links,
       todos,
-      usage_stats
+      usage_stats,
+      nav_shortcuts
     }
   };
 };
@@ -62,10 +65,11 @@ export const applyMergedSnapshotToDb = async (merged: {
   links: SavedLink[];
   todos: TodoItem[];
   usage_stats?: UsageStat[];
+  nav_shortcuts?: NavShortcut[];
 }): Promise<void> => {
   await tabviaDb.transaction(
     "rw",
-    [tabviaDb.link_groups, tabviaDb.links, tabviaDb.todos, tabviaDb.usage_stats],
+    [tabviaDb.link_groups, tabviaDb.links, tabviaDb.todos, tabviaDb.usage_stats, tabviaDb.nav_shortcuts],
     async () => {
       if (merged.link_groups.length > 0) {
         await tabviaDb.link_groups.bulkPut(merged.link_groups);
@@ -78,6 +82,9 @@ export const applyMergedSnapshotToDb = async (merged: {
       }
       if (merged.usage_stats && merged.usage_stats.length > 0) {
         await tabviaDb.usage_stats.bulkPut(merged.usage_stats);
+      }
+      if (merged.nav_shortcuts && merged.nav_shortcuts.length > 0) {
+        await tabviaDb.nav_shortcuts.bulkPut(merged.nav_shortcuts);
       }
     }
   );
@@ -116,7 +123,8 @@ export const performSync = async (config: SyncProviderConfig): Promise<SyncResul
       {
         link_groups: localSnapshot.data.link_groups,
         links: localSnapshot.data.links,
-        todos: localSnapshot.data.todos
+        todos: localSnapshot.data.todos,
+        nav_shortcuts: localSnapshot.data.nav_shortcuts
       },
       remoteSnapshot
     );

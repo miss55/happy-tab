@@ -1,5 +1,6 @@
 import { tabviaDb } from "@/db/tabviaDb";
 import type { LinkGroup, SavedLink } from "@/types/links";
+import type { NavShortcut } from "@/types/navShortcuts";
 import type { TodoItem } from "@/types/todos";
 import type { UsageStat } from "@/types/usageStats";
 import {
@@ -145,6 +146,29 @@ const parseTodo = (record: UnknownRecord, path: string): TodoItem => ({
   completed_at: readOptionalDateString(record, "completed_at", path)
 });
 
+const parseNavShortcut = (record: UnknownRecord, path: string): NavShortcut => {
+  const url = readString(record, "url", path);
+
+  if (!isSafeWebUrl(url)) {
+    throw new DataBackupError("unsafe_url", `${path}.url`);
+  }
+
+  const faviconUrl = readOptionalString(record, "favicon_url", path);
+  if (faviconUrl !== undefined && faviconUrl !== "" && !isSafeWebUrl(faviconUrl)) {
+    throw new DataBackupError("unsafe_url", `${path}.favicon_url`);
+  }
+
+  return {
+    id: readString(record, "id", path),
+    title: readString(record, "title", path),
+    url,
+    favicon_url: faviconUrl || undefined,
+    sort_order: readNonNegativeInteger(record, "sort_order", path),
+    created_at: readDateString(record, "created_at", path),
+    updated_at: readDateString(record, "updated_at", path)
+  };
+};
+
 const parseUsageStat = (record: UnknownRecord, path: string): UsageStat => {
   const targetType = readString(record, "target_type", path);
 
@@ -193,11 +217,17 @@ export const parseTabviaBackup = (input: unknown): TabviaBackupV1 => {
   const links = readRecordArray(input.data, "links", parseSavedLink);
   const todos = readRecordArray(input.data, "todos", parseTodo);
   const usageStats = readRecordArray(input.data, "usage_stats", parseUsageStat);
+  const navShortcuts = Array.isArray(input.data.nav_shortcuts)
+    ? readRecordArray(input.data, "nav_shortcuts", parseNavShortcut)
+    : input.data.nav_shortcuts === undefined
+      ? []
+      : invalidData("data.nav_shortcuts");
 
   ensureUniqueIds(linkGroups, "data.link_groups");
   ensureUniqueIds(links, "data.links");
   ensureUniqueIds(todos, "data.todos");
   ensureUniqueIds(usageStats, "data.usage_stats");
+  ensureUniqueIds(navShortcuts, "data.nav_shortcuts");
 
   const groupIds = new Set(linkGroups.map((group) => group.id));
   for (const link of links) {
@@ -221,7 +251,8 @@ export const parseTabviaBackup = (input: unknown): TabviaBackupV1 => {
       link_groups: linkGroups,
       links,
       todos,
-      usage_stats: usageStats
+      usage_stats: usageStats,
+      nav_shortcuts: navShortcuts
     }
   };
 };
@@ -256,6 +287,9 @@ export const createTabviaBackup = async (): Promise<TabviaBackupV1> => {
   const usageStats = activeOnly(await tabviaDb.usage_stats.toArray()).filter((stat) =>
     linkIds.has(stat.target_id)
   );
+  const navShortcuts = activeOnly(await tabviaDb.nav_shortcuts.toArray()).sort(
+    (left, right) => left.sort_order - right.sort_order
+  );
 
   return {
     format: TABVIA_BACKUP_FORMAT,
@@ -265,7 +299,8 @@ export const createTabviaBackup = async (): Promise<TabviaBackupV1> => {
       link_groups: linkGroups,
       links,
       todos,
-      usage_stats: usageStats
+      usage_stats: usageStats,
+      nav_shortcuts: navShortcuts
     }
   };
 };
@@ -296,6 +331,21 @@ const normalizeImportedSortOrders = async () => {
   if (todos.length > 0) {
     await tabviaDb.todos.bulkPut(todos.map((todo, index) => ({ ...todo, sort_order: index })));
   }
+
+  const navShortcuts = (await tabviaDb.nav_shortcuts.toArray())
+    .filter((shortcut) => shortcut.deleted_at === undefined)
+    .sort(
+      (left, right) =>
+        left.sort_order - right.sort_order ||
+        left.created_at.localeCompare(right.created_at) ||
+        left.id.localeCompare(right.id)
+    );
+
+  if (navShortcuts.length > 0) {
+    await tabviaDb.nav_shortcuts.bulkPut(
+      navShortcuts.map((shortcut, index) => ({ ...shortcut, sort_order: index }))
+    );
+  }
 };
 
 export const importTabviaBackup = async (
@@ -306,11 +356,14 @@ export const importTabviaBackup = async (
 
   await tabviaDb.transaction(
     "rw",
-    tabviaDb.link_groups,
-    tabviaDb.links,
-    tabviaDb.todos,
-    tabviaDb.usage_stats,
-    tabviaDb.sync_queue,
+    [
+      tabviaDb.link_groups,
+      tabviaDb.links,
+      tabviaDb.todos,
+      tabviaDb.usage_stats,
+      tabviaDb.nav_shortcuts,
+      tabviaDb.sync_queue
+    ],
     async () => {
       if (mode === "replace") {
         await Promise.all([
@@ -318,6 +371,7 @@ export const importTabviaBackup = async (
           tabviaDb.links.clear(),
           tabviaDb.todos.clear(),
           tabviaDb.usage_stats.clear(),
+          tabviaDb.nav_shortcuts.clear(),
           tabviaDb.sync_queue.clear()
         ]);
       } else {
@@ -325,7 +379,8 @@ export const importTabviaBackup = async (
           ...backup.data.link_groups.map((group) => `link_group:${group.id}`),
           ...backup.data.links.map((link) => `link:${link.id}`),
           ...backup.data.todos.map((todo) => `todo:${todo.id}`),
-          ...backup.data.usage_stats.map((stat) => `usage_stat:${stat.id}`)
+          ...backup.data.usage_stats.map((stat) => `usage_stat:${stat.id}`),
+          ...backup.data.nav_shortcuts.map((shortcut) => `nav_shortcut:${shortcut.id}`)
         ]);
         const staleQueueItemIds = (await tabviaDb.sync_queue.toArray())
           .filter((item) => importedEntityKeys.has(`${item.entity_type}:${item.entity_id}`))
@@ -348,6 +403,9 @@ export const importTabviaBackup = async (
       if (backup.data.usage_stats.length > 0) {
         await tabviaDb.usage_stats.bulkPut(backup.data.usage_stats);
       }
+      if (backup.data.nav_shortcuts.length > 0) {
+        await tabviaDb.nav_shortcuts.bulkPut(backup.data.nav_shortcuts);
+      }
 
       await normalizeImportedSortOrders();
     }
@@ -357,6 +415,7 @@ export const importTabviaBackup = async (
     link_groups: backup.data.link_groups.length,
     links: backup.data.links.length,
     todos: backup.data.todos.length,
-    usage_stats: backup.data.usage_stats.length
+    usage_stats: backup.data.usage_stats.length,
+    nav_shortcuts: backup.data.nav_shortcuts.length
   };
 };

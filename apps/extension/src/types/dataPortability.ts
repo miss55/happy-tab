@@ -1,4 +1,5 @@
 import type { LinkGroup, SavedLink } from "@/types/links";
+import type { NavShortcut } from "@/types/navShortcuts";
 import type { TodoItem } from "@/types/todos";
 import type { UsageStat } from "@/types/usageStats";
 
@@ -16,6 +17,7 @@ export interface TabviaBackupV1 {
     links: SavedLink[];
     todos: TodoItem[];
     usage_stats: UsageStat[];
+    nav_shortcuts: NavShortcut[];
   };
 }
 
@@ -24,6 +26,7 @@ export interface DataImportSummary {
   links: number;
   todos: number;
   usage_stats: number;
+  nav_shortcuts: number;
 }
 
 export type DataBackupErrorCode =

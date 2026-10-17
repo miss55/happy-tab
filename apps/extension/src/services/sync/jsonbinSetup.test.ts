@@ -19,7 +19,8 @@ describe("jsonbinSetup", () => {
       link_groups: [],
       links: [],
       todos: [],
-      usage_stats: []
+      usage_stats: [],
+      nav_shortcuts: []
     });
   });
 

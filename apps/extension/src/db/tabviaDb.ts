@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import type { LinkGroup, SavedLink } from "@/types/links";
+import type { NavShortcut } from "@/types/navShortcuts";
 import type { SyncQueueItem } from "@/types/syncQueue";
 import type { ThemeBackgroundAsset } from "@/types/theme";
 import type { TodoItem } from "@/types/todos";
@@ -12,6 +13,7 @@ class TabviaDb extends Dexie {
   usage_stats!: Table<UsageStat, string>;
   sync_queue!: Table<SyncQueueItem, string>;
   theme_assets!: Table<ThemeBackgroundAsset, string>;
+  nav_shortcuts!: Table<NavShortcut, string>;
 
   constructor() {
     super("happy_tab");
@@ -51,6 +53,10 @@ class TabviaDb extends Dexie {
 
     this.version(5).stores({
       theme_assets: "&id, updated_at"
+    });
+
+    this.version(6).stores({
+      nav_shortcuts: "&id, sort_order, deleted_at, updated_at"
     });
   }
 }
