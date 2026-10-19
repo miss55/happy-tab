@@ -16,6 +16,7 @@ import {
   activateBrowserTab,
   closeBrowserTab,
   getBrowserWindowGroups,
+  reuseBrowserWindowGroups,
   subscribeBrowserTabUpdates
 } from "@/services/browserTabs";
 import {
@@ -499,16 +500,40 @@ const moveAround = <T,>(
   return nextItems;
 };
 
+let browserTabsRequest = 0;
+
 const loadBrowserTabs = async () => {
-  isTabsLoading.value = true;
+  const requestId = ++browserTabsRequest;
+  const showLoading = windowGroups.value.length === 0;
+
+  if (showLoading) {
+    isTabsLoading.value = true;
+  }
+
   tabsErrorMessage.value = "";
 
   try {
-    windowGroups.value = await getBrowserWindowGroups();
+    const fetched = await getBrowserWindowGroups();
+
+    if (requestId !== browserTabsRequest) {
+      return;
+    }
+
+    const next = reuseBrowserWindowGroups(windowGroups.value, fetched);
+
+    if (next !== windowGroups.value) {
+      windowGroups.value = next;
+    }
   } catch {
+    if (requestId !== browserTabsRequest) {
+      return;
+    }
+
     tabsErrorMessage.value = "error.loadBrowserTabs";
   } finally {
-    isTabsLoading.value = false;
+    if (showLoading && requestId === browserTabsRequest) {
+      isTabsLoading.value = false;
+    }
   }
 };
 

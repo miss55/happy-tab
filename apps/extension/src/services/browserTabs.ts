@@ -76,6 +76,62 @@ export const activateBrowserTab = async (tab: BrowserTab): Promise<void> => {
   await chrome.tabs.update(tab.id, { active: true });
 };
 
+const sameBrowserTab = (left: BrowserTab, right: BrowserTab): boolean =>
+  left.id === right.id &&
+  left.windowId === right.windowId &&
+  left.title === right.title &&
+  left.url === right.url &&
+  left.favIconUrl === right.favIconUrl &&
+  left.active === right.active &&
+  left.pinned === right.pinned;
+
+const sameWindowGroup = (left: BrowserWindowGroup, right: BrowserWindowGroup): boolean =>
+  left.id === right.id &&
+  left.focused === right.focused &&
+  left.type === right.type &&
+  left.tabs.length === right.tabs.length &&
+  left.tabs.every((tab, index) => tab === right.tabs[index]);
+
+export const reuseBrowserWindowGroups = (
+  previous: BrowserWindowGroup[],
+  next: BrowserWindowGroup[]
+): BrowserWindowGroup[] => {
+  if (
+    previous.length === next.length &&
+    previous.every((group, index) => {
+      const incoming = next[index];
+      return (
+        incoming !== undefined &&
+        group.id === incoming.id &&
+        group.focused === incoming.focused &&
+        group.type === incoming.type &&
+        group.tabs.length === incoming.tabs.length &&
+        group.tabs.every((tab, tabIndex) => sameBrowserTab(tab, incoming.tabs[tabIndex]!))
+      );
+    })
+  ) {
+    return previous;
+  }
+
+  const previousTabs = new Map<number, BrowserTab>();
+  for (const group of previous) {
+    for (const tab of group.tabs) {
+      previousTabs.set(tab.id, tab);
+    }
+  }
+  const previousGroups = new Map(previous.map((group) => [group.id, group]));
+
+  return next.map((group) => {
+    const tabs = group.tabs.map((tab) => {
+      const existing = previousTabs.get(tab.id);
+      return existing && sameBrowserTab(existing, tab) ? existing : tab;
+    });
+    const reused = { ...group, tabs };
+    const existingGroup = previousGroups.get(group.id);
+    return existingGroup && sameWindowGroup(existingGroup, reused) ? existingGroup : reused;
+  });
+};
+
 export const closeBrowserTab = async (tabId: number): Promise<void> => {
   if (!isChromeTabsAvailable()) {
     return;

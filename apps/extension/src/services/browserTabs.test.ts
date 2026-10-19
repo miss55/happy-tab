@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getBrowserWindowGroups, subscribeBrowserTabUpdates } from "@/services/browserTabs";
+import { getBrowserWindowGroups, reuseBrowserWindowGroups, subscribeBrowserTabUpdates } from "@/services/browserTabs";
+import type { BrowserWindowGroup } from "@/types/browserTabs";
 
 const stubChromeWindows = (windows: Array<Partial<chrome.windows.Window>>) => {
   vi.stubGlobal("chrome", {
@@ -121,5 +122,98 @@ describe("getBrowserWindowGroups", () => {
       "Other window active tab",
       "Other window inactive tab"
     ]);
+  });
+});
+
+const windowGroup = (overrides: Partial<BrowserWindowGroup> = {}): BrowserWindowGroup => ({
+  id: 1,
+  focused: true,
+  type: "normal",
+  tabs: [
+    {
+      id: 11,
+      windowId: 1,
+      title: "Example",
+      url: "https://example.com",
+      favIconUrl: "https://example.com/favicon.ico",
+      active: false,
+      pinned: false
+    }
+  ],
+  ...overrides
+});
+
+describe("reuseBrowserWindowGroups", () => {
+  it("keeps the previous snapshot when a refresh finds the same tabs", () => {
+    const previous = [windowGroup()];
+    const next = [windowGroup()];
+
+    expect(reuseBrowserWindowGroups(previous, next)).toBe(previous);
+  });
+
+  it("reuses unchanged rows when one tab title changes", () => {
+    const previous = [
+      windowGroup({
+        tabs: [
+          {
+            id: 11,
+            windowId: 1,
+            title: "Example",
+            url: "https://example.com",
+            active: false,
+            pinned: false
+          },
+          {
+            id: 12,
+            windowId: 1,
+            title: "Other",
+            url: "https://other.test",
+            active: false,
+            pinned: false
+          }
+        ]
+      })
+    ];
+    const next = [
+      windowGroup({
+        tabs: [
+          { ...previous[0]!.tabs[0]!, title: "Renamed" },
+          { ...previous[0]!.tabs[1]! }
+        ]
+      })
+    ];
+
+    const reused = reuseBrowserWindowGroups(previous, next);
+
+    expect(reused).not.toBe(previous);
+    expect(reused[0]?.tabs[0]).not.toBe(previous[0]?.tabs[0]);
+    expect(reused[0]?.tabs[0]?.title).toBe("Renamed");
+    expect(reused[0]?.tabs[1]).toBe(previous[0]?.tabs[1]);
+  });
+
+  it("reuses tab objects when only their order changes", () => {
+    const first = {
+      id: 11,
+      windowId: 1,
+      title: "First",
+      url: "https://first.test",
+      active: false,
+      pinned: false
+    };
+    const second = {
+      id: 12,
+      windowId: 1,
+      title: "Second",
+      url: "https://second.test",
+      active: false,
+      pinned: false
+    };
+    const previous = [windowGroup({ tabs: [first, second] })];
+    const next = [windowGroup({ tabs: [{ ...second }, { ...first }] })];
+
+    const reused = reuseBrowserWindowGroups(previous, next);
+
+    expect(reused[0]?.tabs[0]).toBe(second);
+    expect(reused[0]?.tabs[1]).toBe(first);
   });
 });
