@@ -26,6 +26,38 @@ export const browserTabToLinkInput = (tab: BrowserTab, groupId: string): CreateL
   source: "browser_tab"
 });
 
+export const applyLinkOrder = (
+  current: LinkGroupWithLinks[],
+  order: ReorderLinksInput["groups"]
+): LinkGroupWithLinks[] => {
+  const linkById = new Map(current.flatMap((group) => group.links).map((link) => [link.id, link]));
+  const idsByGroup = new Map(order.map((group) => [group.group_id, group.link_ids]));
+
+  return current.map((group) => {
+    const linkIds = idsByGroup.get(group.id);
+
+    if (!linkIds) {
+      return group;
+    }
+
+    return {
+      ...group,
+      links: linkIds.flatMap((linkId) => {
+        const link = linkById.get(linkId);
+        return link ? [link.group_id === group.id ? link : { ...link, group_id: group.id }] : [];
+      })
+    };
+  });
+};
+
+export const applyGroupOrder = (current: LinkGroupWithLinks[], groupIds: string[]): LinkGroupWithLinks[] => {
+  const rank = new Map(groupIds.map((id, index) => [id, index]));
+  return [...current].sort(
+    (left, right) =>
+      (rank.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (rank.get(right.id) ?? Number.MAX_SAFE_INTEGER)
+  );
+};
+
 interface LinksState {
   groups: LinkGroupWithLinks[];
   isLoading: boolean;
@@ -46,7 +78,12 @@ export const useLinksStore = defineStore("links", {
 
   actions: {
     async loadLinks() {
-      this.isLoading = true;
+      const showLoading = this.groups.length === 0;
+
+      if (showLoading) {
+        this.isLoading = true;
+      }
+
       this.errorMessage = "";
 
       try {
@@ -56,7 +93,9 @@ export const useLinksStore = defineStore("links", {
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.loadLinks");
       } finally {
-        this.isLoading = false;
+        if (showLoading) {
+          this.isLoading = false;
+        }
       }
     },
 
@@ -140,11 +179,13 @@ export const useLinksStore = defineStore("links", {
 
     async sortGroups(groupIds: string[]) {
       this.errorMessage = "";
+      this.groups = applyGroupOrder(this.groups, groupIds);
 
       try {
         await reorderLinkGroups({ group_ids: groupIds });
         await this.loadLinks();
       } catch (error) {
+        await this.loadLinks();
         this.errorMessage = messageKeyFromError(error, "error.sortGroups");
         throw error;
       }
@@ -152,11 +193,13 @@ export const useLinksStore = defineStore("links", {
 
     async sortLinks(groups: ReorderLinksInput["groups"]) {
       this.errorMessage = "";
+      this.groups = applyLinkOrder(this.groups, groups);
 
       try {
         await reorderLinks({ groups });
         await this.loadLinks();
       } catch (error) {
+        await this.loadLinks();
         this.errorMessage = messageKeyFromError(error, "error.sortLinks");
         throw error;
       }
