@@ -1,0 +1,86 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>*, *::before, *::after { transition: none !important; animation: none !important; }</style></head><body>
+<div id="theme-background"></div><div id="app"></div><pre id="result">RUNNING</pre>
+<script type="module">
+import { nextTick } from 'vue';
+import * as theme from '/src/services/theme.ts';
+import '/src/main.ts';
+const result = document.querySelector('#result');
+// Run against the real Vue controls and computed CSS, with transitions settled.
+const checks = [];
+const check = (condition, label) => { if (!condition) throw new Error(label); checks.push(label); };
+try {
+  for (let i = 0; !document.querySelector('.theme-panel-button') && i < 100; i++) await new Promise(r => setTimeout(r, 50));
+  check(Boolean(document.querySelector('.theme-panel-button')), 'App mounted');
+  document.querySelector('.theme-panel-button').click();
+  await nextTick();
+  const fixture = document.createElement('div');
+  fixture.innerHTML = '<div class="link-group"><div class="link-group-header">Header</div><div class="saved-link-row"><button class="saved-link-button"><span class="saved-link-title">Focus sample</span></button></div></div><div class="todo-dialog-actions"><button class="primary-button">Save</button></div>';
+  document.body.append(fixture);
+  const group = fixture.querySelector('.link-group');
+  const primary = fixture.querySelector('.primary-button');
+  const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1;
+  const ctx = canvas.getContext('2d');
+  const luminance = color => {
+    ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = color; ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b] = [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3).map(c => c / 255).map(c => c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4);
+    return .2126*r + .7152*g + .0722*b;
+  };
+  const ratio = (a, b) => (Math.max(luminance(a), luminance(b)) + .05) / (Math.min(luminance(a), luminance(b)) + .05);
+  for (const style of ['soft', 'minimal', 'glass', 'fluent', 'oled', 'cyber']) {
+    await theme.setThemeStyle(style);
+    for (const mode of ['system', 'light', 'dark']) {
+      await theme.setThemeMode(mode);
+      await nextTick();
+      const locked = theme.isThemeModeLocked(style);
+      const modes = [...document.querySelectorAll('.theme-mode-list > button')];
+      check(modes.length === 3 && modes[1].disabled === locked && modes[0].disabled === locked, `${style}/${mode}: mode controls`);
+      check(modes[locked ? 2 : ['system', 'light', 'dark'].indexOf(mode)].getAttribute('aria-pressed') === 'true', `${style}/${mode}: selected mode`);
+      if (locked) {
+        modes[2].click();
+        check(theme.useTheme().settings.value.mode === mode, `${style}/${mode}: locked controls preserve preference`);
+      }
+      for (const type of ['solid', 'wallpaper']) {
+        await theme.updateThemeBackground({type});
+        for (const blur of [true, false]) {
+          await theme.updateThemeEffects({blur, glow: true});
+          const label = `${style}/${mode}/${type}/${blur}`;
+          if (!blur) {
+            check(getComputedStyle(document.querySelector('#theme-background'), '::before').filter === 'none', `${label}: background blur off`);
+            check(getComputedStyle(group).backdropFilter === 'none', `${label}: panel blur off`);
+            check(getComputedStyle(document.querySelector('.topbar')).backdropFilter === 'none', `${label}: topbar blur off`);
+          }
+          if (type === 'wallpaper') {
+            check(getComputedStyle(document.querySelector('.saved-links-column > .section-header')).backgroundColor !== 'rgba(0, 0, 0, 0)', `${label}: protected title`);
+          }
+        }
+      }
+      group.classList.remove('selected');
+      const unselectedShadow = getComputedStyle(group).boxShadow;
+      group.classList.add('selected');
+      check(getComputedStyle(group).boxShadow !== unselectedShadow, `${style}/${mode}: group selection visible`);
+      group.classList.remove('selected');
+      for (const palette of ['style', 'blue', 'purple', 'green', 'orange', 'custom']) {
+        await theme.setThemePalette(palette);
+        if (palette !== 'custom') check(document.documentElement.style.getPropertyValue('--theme-accent-text') === '', `${style}/${mode}/${palette}: custom ink cleared`);
+        if (palette === 'custom') await theme.updateCustomTheme({...theme.defaultCustomTheme, accent: mode === 'dark' ? '#000000' : '#ffffff'});
+        const css = getComputedStyle(primary);
+        check(ratio(css.color, css.backgroundColor) >= 4.5, `${style}/${mode}/${palette}: primary contrast`);
+        if (palette === 'custom') {
+          fixture.querySelector('.saved-link-button').focus();
+          const ink = getComputedStyle(fixture.querySelector('.saved-link-title')).color;
+          const surface = getComputedStyle(document.documentElement).getPropertyValue('--theme-surface');
+          check(ratio(ink, surface) >= 4.5, `${style}/${mode}: custom focused title contrast`);
+        }
+      }
+    }
+  }
+  await theme.setThemeStyle('cyber'); await theme.setThemePalette('purple');
+  check(getComputedStyle(document.documentElement).getPropertyValue('--theme-glow-color').trim() === '#c4b5fd', 'Cyber glow follows palette');
+  await theme.updateThemeEffects({blur: true});
+  await theme.setThemeStyle('glass');
+  const glassSurface = getComputedStyle(group).backgroundColor;
+  await theme.setThemeStyle('fluent');
+  check(getComputedStyle(group).backgroundColor !== glassSurface, 'Fluent and Glass dark materials differ');
+  result.textContent = `PASS ${checks.length} browser checks`;
+} catch (error) { result.textContent = `FAIL ${error.stack}`; }
+</script></body></html>

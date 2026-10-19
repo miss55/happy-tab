@@ -42,7 +42,7 @@ import {
   type AnchoredDropSlot,
   type LinkDropSlot
 } from "@/services/linkDropSlot";
-import { useTheme } from "@/services/theme";
+import { isThemeModeLocked, useTheme } from "@/services/theme";
 import { useWorkspaceSettings } from "@/services/workspaceSettings";
 import { builtInWallpapers } from "@/services/themePresets";
 import { useI18n, type SupportedLocale, type TranslationParams } from "@/i18n";
@@ -95,6 +95,7 @@ const {
   removeThemeBackgroundImage,
   resetTheme
 } = useTheme();
+const isColorModeLocked = computed(() => isThemeModeLocked(themeSettings.value.style));
 const { settings: workspaceSettings, setShowTodos } = useWorkspaceSettings();
 const {
   config: syncConfig,
@@ -357,8 +358,8 @@ const themePaletteOptions: Array<{
   { palette: "style", label: "theme.paletteStyle", color: "var(--theme-style-accent)" },
   { palette: "blue", label: "theme.paletteBlue", color: "#2563eb" },
   { palette: "purple", label: "theme.palettePurple", color: "#7c3aed" },
-  { palette: "green", label: "theme.paletteGreen", color: "#059669" },
-  { palette: "orange", label: "theme.paletteOrange", color: "#ea580c" },
+  { palette: "green", label: "theme.paletteGreen", color: "#047857" },
+  { palette: "orange", label: "theme.paletteOrange", color: "#c2410c" },
   { palette: "custom", label: "theme.paletteCustom", color: "var(--theme-accent)" }
 ];
 const themeBackgroundTypeOptions: Array<{
@@ -1410,6 +1411,7 @@ const closeThemePanel = () => {
 };
 
 const applyThemeMode = async (mode: ThemeMode) => {
+  if (isColorModeLocked.value) return;
   themeErrorKey.value = null;
 
   try {
@@ -2087,14 +2089,17 @@ onBeforeUnmount(() => {
           <header class="theme-setting-header">
             <h3>{{ t("theme.colorMode") }}</h3>
             <p>{{ t("theme.colorModeDescription") }}</p>
+            <p v-if="isColorModeLocked" id="theme-mode-lock-note">{{ t("theme.fixedDarkMode") }}</p>
           </header>
           <div class="theme-mode-list">
             <button
               v-for="option in themeModeOptions"
               :key="option.mode"
               type="button"
-              :class="{ selected: themeSettings.mode === option.mode }"
-              :aria-pressed="themeSettings.mode === option.mode"
+              :class="{ selected: (isColorModeLocked ? 'dark' : themeSettings.mode) === option.mode }"
+              :aria-pressed="(isColorModeLocked ? 'dark' : themeSettings.mode) === option.mode"
+              :disabled="isColorModeLocked && option.mode !== 'dark'"
+              :aria-describedby="isColorModeLocked ? 'theme-mode-lock-note' : undefined"
               @click="applyThemeMode(option.mode)"
             >
               <span

@@ -66,6 +66,7 @@ export const zhTWMessages: Record<MessageKey, string> = {
   "theme.advancedDescription": "調整配色、介面形態和自己的背景圖片。",
   "theme.colorMode": "配色模式",
   "theme.colorModeDescription": "配色與介面形態、間距相互獨立，可自由組合。",
+  "theme.fixedDarkMode": "此風格固定使用深色模式。切換至其他風格時會恢復你的模式偏好。",
   "theme.system": "跟隨系統",
   "theme.systemDescription": "自動跟隨作業系統的淺色或深色外觀。",
   "theme.light": "淺色",

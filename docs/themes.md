@@ -48,6 +48,11 @@ Glass and Fluent work with a solid color or a wallpaper. Soft and Minimal can
 also use a wallpaper without becoming Glass.
 
 Effects can turn blur, animation, and glow off without changing the style.
+Turning blur off disables both the wallpaper filter and panel/toolbar blur.
+The custom background blur slider is respected down to 0px in every style;
+Glass and Fluent do not impose a minimum background blur.
+OLED and Cyber show their fixed dark mode in the picker and preserve the user's
+mode preference for the next style that supports it.
 
 ## Storage
 
@@ -66,6 +71,17 @@ Components consume semantic CSS variables such as `--theme-surface`,
 `--theme-card-shadow`. Style-specific values are applied through
 `data-theme-style` on the document root. Palette values are applied through
 `data-theme-palette`.
+Theme tokens live in `src/styles/theme-tokens.css`; component and interaction
+rules remain in `src/styles.css`. Accent text uses `--theme-accent-text`, while
+filled buttons use separate normal and hover ink tokens. Custom accents keep
+the user's fill color and adjust emphasis text for at least 4.5:1 contrast on
+the style's base and accent-soft surfaces. Light green, orange, and Glass violet
+fills use darker shades for readable white button text.
+Group depth consumes `--theme-group-shadow`, so Soft retains its soft shadow,
+Minimal and OLED retain flat surfaces, and Cyber follows the chosen accent for
+its optional glow. The selected group has an accent-colored body outline.
+Dark Fluent uses denser layers than Glass; gallery previews follow the resolved
+mode and approximate each style's actual surface opacity.
 
 Link groups share the current theme's surface, transparency, and blur instead
 of using a fixed glass material. Their headers use bright, opaque pastel title
@@ -101,7 +117,7 @@ feature boundary.
 
 ## Header readability over wallpapers
 
-With wallpaper or a custom background image enabled, Soft and Minimal give the
+With wallpaper or a custom background image enabled, Soft, Minimal, and OLED give the
 bookmarks header a solid theme surface so the title and link-count hint remain
 readable over either bright or dark artwork. Plain backgrounds keep the simple
 unboxed header; glass styles retain their own material treatment.
@@ -120,3 +136,14 @@ waiting for the IndexedDB background asset, and the initial wallpaper is
 preloaded/decoded with a bounded wait. The app becomes visible after local core
 data and the first masonry layout settle; favicon loading and cloud sync do not
 delay that reveal. Startup transitions are disabled until that point.
+
+## Verification
+
+Run `pnpm check:themes` from the repository root with dependencies installed.
+It starts a temporary local Vite server and a headless Chrome/Chromium instance
+with a disposable profile. Set `CHROME_PATH` when the browser is not in a common
+installation location. The runner requires Node.js 22 or newer for WebSocket.
+It checks the real Vue mode controls, final computed colors, wallpaper title
+protection, disabled blur, group selection, and style/palette transitions.
+The HTML harness in `apps/extension/tests/theme-styles.html` is not a production
+build entry and is not included in the extension package.

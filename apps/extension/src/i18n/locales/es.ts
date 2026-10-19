@@ -66,6 +66,7 @@ export const esMessages: Record<MessageKey, string> = {
   "theme.advancedDescription": "Ajusta colores, estilo de diseño y tu propio fondo.",
   "theme.colorMode": "Modo de color",
   "theme.colorModeDescription": "Controla la paleta de forma independiente de la forma y el espaciado de la interfaz.",
+  "theme.fixedDarkMode": "Este estilo siempre usa el modo oscuro. Tu preferencia se conserva para otros estilos.",
   "theme.system": "Sistema",
   "theme.systemDescription": "Sigue la apariencia clara u oscura del sistema operativo.",
   "theme.light": "Claro",

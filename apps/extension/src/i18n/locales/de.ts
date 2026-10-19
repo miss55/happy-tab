@@ -66,6 +66,7 @@ export const deMessages: Record<MessageKey, string> = {
   "theme.advancedDescription": "Passe Farben, Layout-Stil und dein eigenes Hintergrundbild an.",
   "theme.colorMode": "Farbmodus",
   "theme.colorModeDescription": "Steuere die Palette unabhängig von Form und Abstand der Oberfläche.",
+  "theme.fixedDarkMode": "Dieser Stil verwendet immer den Dunkelmodus. Deine Einstellung bleibt für andere Stile erhalten.",
   "theme.system": "System",
   "theme.systemDescription": "Der hellen oder dunklen Darstellung des Betriebssystems folgen.",
   "theme.light": "Hell",

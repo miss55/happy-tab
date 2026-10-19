@@ -66,6 +66,7 @@ export const jaMessages: Record<MessageKey, string> = {
   "theme.advancedDescription": "色、レイアウトスタイル、自分の壁紙を調整します。",
   "theme.colorMode": "カラーモード",
   "theme.colorModeDescription": "配色はインターフェースの形や余白とは独立して選べます。",
+  "theme.fixedDarkMode": "このスタイルは常にダークモードです。他のスタイルでは元の設定に戻ります。",
   "theme.system": "システム",
   "theme.systemDescription": "OS のライト / ダーク外観に合わせます。",
   "theme.light": "ライト",

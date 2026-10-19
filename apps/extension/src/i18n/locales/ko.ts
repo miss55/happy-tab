@@ -66,6 +66,7 @@ export const koMessages: Record<MessageKey, string> = {
   "theme.advancedDescription": "색, 레이아웃 스타일, 나만의 배경 이미지를 조정합니다.",
   "theme.colorMode": "색상 모드",
   "theme.colorModeDescription": "배색은 인터페이스 형태 및 간격과 독립적으로 설정됩니다.",
+  "theme.fixedDarkMode": "이 스타일은 항상 다크 모드를 사용합니다. 다른 스타일로 전환하면 기존 설정이 복원됩니다.",
   "theme.system": "시스템",
   "theme.systemDescription": "운영 체제의 밝은/어두운 모양을 따릅니다.",
   "theme.light": "밝게",

@@ -17,6 +17,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "check:manifest": "node scripts/validate-extension-manifest.mjs",
+    "check:themes": "node scripts/check-theme-styles.mjs",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r typecheck",
     "dev:extension": "pnpm --filter @tabvia/extension dev",

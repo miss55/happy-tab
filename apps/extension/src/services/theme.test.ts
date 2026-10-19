@@ -15,6 +15,7 @@ vi.mock("@/services/chromeStorage", () => storageMocks);
 vi.mock("@/repositories/themeAssetRepository", () => assetMocks);
 
 import {
+  buildAccentVariables,
   buildCustomThemeVariables,
   defaultCustomTheme,
   defaultThemeBackground,
@@ -183,6 +184,31 @@ describe("theme", () => {
     expect(resolveThemeMode("light", "cyber")).toBe("dark");
     expect(resolveThemeMode("system", "cyber")).toBe("dark");
     expect(resolveThemeMode("light", "soft")).toBe("light");
+  });
+
+  it("keeps custom accents readable as button ink and surface emphasis", () => {
+    for (const surface of ["#ffffff", "#111827", "#121212", "#11061f"]) {
+      for (const accent of ["#000000", "#ffffff", "#777777", "#059669", "#ea580c", "#ffff00", "#0000ff"]) {
+        const variables = buildAccentVariables(accent, surface !== "#ffffff", surface);
+        expect(variables["--theme-accent"]).toBe(accent);
+        expect(getContrastRatio(accent, variables["--theme-accent-contrast"])).toBeGreaterThanOrEqual(4.5);
+        expect(getContrastRatio(variables["--theme-accent-strong"], variables["--theme-accent-hover-contrast"])).toBeGreaterThanOrEqual(4.5);
+        expect(getContrastRatio(variables["--theme-accent-text"], surface)).toBeGreaterThanOrEqual(4.5);
+        expect(getContrastRatio(variables["--theme-accent-text"], variables["--theme-accent-soft"])).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("restores the mode preference after leaving an inherently dark style", async () => {
+    await initializeTheme();
+    await setThemeMode("light");
+    for (const style of ["oled", "cyber"] as const) {
+      await setThemeStyle(style);
+      expect(useTheme().settings.value.mode).toBe("light");
+      expect(resolveThemeMode(useTheme().settings.value.mode, style)).toBe("dark");
+      await setThemeStyle("soft");
+      expect(resolveThemeMode(useTheme().settings.value.mode, "soft")).toBe("light");
+    }
   });
 
   it("loads a saved theme and persists style, mode, palette, and custom changes", async () => {

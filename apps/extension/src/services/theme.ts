@@ -37,6 +37,8 @@ const INLINE_THEME_PROPERTIES = [
   "--theme-accent-strong",
   "--theme-accent-soft",
   "--theme-accent-contrast",
+  "--theme-accent-hover-contrast",
+  "--theme-accent-text",
   "--theme-bg",
   "--theme-surface",
   "--theme-surface-soft",
@@ -180,8 +182,10 @@ const normalizeStyle = (value: unknown): ThemeStyle => {
 const prefersDarkScheme = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
 
+export const isThemeModeLocked = (style: ThemeStyle) => style === "oled" || style === "cyber";
+
 export const resolveThemeMode = (mode: ThemeMode, style: ThemeStyle): "light" | "dark" => {
-  if (style === "oled" || style === "cyber") {
+  if (isThemeModeLocked(style)) {
     return "dark";
   }
 
@@ -362,8 +366,6 @@ export const normalizeThemeSettings = (
 };
 
 export const buildCustomThemeVariables = (colors: CustomThemeColors) => {
-  const accentContrast =
-    getContrastRatio(colors.accent, "#ffffff") >= 4.5 ? "#ffffff" : "#111827";
   const isDark = relativeLuminance(colors.background) < 0.36;
   const danger = isDark ? "#fda4af" : "#a62639";
   const success = isDark ? "#6ee7b7" : "#17603a";
@@ -380,10 +382,7 @@ export const buildCustomThemeVariables = (colors: CustomThemeColors) => {
     "--theme-surface-text": surfaceText,
     "--theme-muted": mixColors(surfaceText, colors.surface, 0.48),
     "--theme-border": mixColors(surfaceText, colors.surface, 0.82),
-    "--theme-accent": colors.accent,
-    "--theme-accent-strong": mixColors(colors.accent, "#000000", 0.18),
-    "--theme-accent-soft": mixColors(colors.accent, colors.surface, 0.84),
-    "--theme-accent-contrast": accentContrast,
+    ...buildAccentVariables(colors.accent, isDark, colors.surface),
     "--theme-danger": danger,
     "--theme-danger-soft": mixColors(danger, colors.surface, 0.84),
     "--theme-success": success,
@@ -394,15 +393,33 @@ export const buildCustomThemeVariables = (colors: CustomThemeColors) => {
   } as const;
 };
 
-const buildAccentVariables = (accent: string, isDark: boolean) => {
-  const surface = isDark ? "#111827" : "#ffffff";
-  const accentContrast = getContrastRatio(accent, "#ffffff") >= 4.5 ? "#ffffff" : "#111827";
+export const buildAccentVariables = (
+  accent: string,
+  isDark: boolean,
+  surface = isDark ? "#111827" : "#ffffff"
+) => {
+  const hover = mixColors(accent, "#000000", 0.18);
+  const soft = isDark ? mixColors(accent, "#000000", 0.72) : mixColors(accent, surface, 0.84);
+  const readableInk = (fill: string) =>
+    getContrastRatio(fill, "#ffffff") >= 4.5 ? "#ffffff" : "#000000";
+  // Text emphasis has a different background from a filled primary button.
+  const target = isDark ? "#ffffff" : "#000000";
+  let text = accent;
+  for (
+    let step = 1;
+    step <= 100 && (getContrastRatio(text, surface) < 4.5 || getContrastRatio(text, soft) < 4.5);
+    step++
+  ) {
+    text = mixColors(accent, target, step / 100);
+  }
 
   return {
     "--theme-accent": accent,
-    "--theme-accent-strong": mixColors(accent, "#000000", 0.18),
-    "--theme-accent-soft": isDark ? mixColors(accent, "#000000", 0.72) : mixColors(accent, surface, 0.84),
-    "--theme-accent-contrast": accentContrast
+    "--theme-accent-strong": hover,
+    "--theme-accent-soft": soft,
+    "--theme-accent-contrast": readableInk(accent),
+    "--theme-accent-hover-contrast": readableInk(hover),
+    "--theme-accent-text": text
   } as const;
 };
 
@@ -520,7 +537,9 @@ const applyTheme = (settings: ThemeSettings) => {
   root.style.removeProperty("background-color");
 
   if (settings.palette === "custom") {
-    const variables = buildAccentVariables(settings.custom.accent, isDark);
+    const surface = settings.style === "oled" ? "#121212"
+      : settings.style === "cyber" ? "#11061f" : isDark ? "#111827" : "#ffffff";
+    const variables = buildAccentVariables(settings.custom.accent, isDark, surface);
     for (const [property, value] of Object.entries(variables)) {
       root.style.setProperty(property, value);
     }

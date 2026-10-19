@@ -66,6 +66,7 @@ export const frMessages: Record<MessageKey, string> = {
   "theme.advancedDescription": "Ajustez les couleurs, le style de mise en page et votre propre fond.",
   "theme.colorMode": "Mode de couleur",
   "theme.colorModeDescription": "Contrôlez la palette indépendamment de la forme et de l’espacement de l’interface.",
+  "theme.fixedDarkMode": "Ce style utilise toujours le mode sombre. Votre préférence est conservée pour les autres styles.",
   "theme.system": "Système",
   "theme.systemDescription": "Suivre l’apparence claire ou sombre du système d’exploitation.",
   "theme.light": "Clair",
