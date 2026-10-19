@@ -33,10 +33,10 @@ The extension works 100% local-first and offline without requiring a custom serv
 
 Tabvia supports syncing your data snapshot to third-party cloud storage:
 
-- **JSONBin.io** (Access Key with Bins Read + Update + Bin ID; do not use the Master Key)
+- **Upstash Redis** (HTTPS REST URL + REST Token; the Redis key is created on first sync)
 - **GitHub Gist** (Fine-grained token with Gists Read and write + Gist ID)
 - **Cloudflare KV** (Account ID + Namespace ID + Custom Token with Workers KV Storage Read and Edit)
-- **Upstash Redis** (HTTPS REST URL + REST Token; the Redis key is created on first sync)
+- **JSONBin.io** (Access Key with Bins Read + Update + Bin ID; do not use the Master Key)
 - **Custom REST API** (Endpoint URL + Custom JSON Headers)
 
 Features:

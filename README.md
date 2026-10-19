@@ -74,7 +74,7 @@ Implemented:
 - Theme styles (soft, minimal, glass, fluent, oled, cyber), light/dark/system mode, accent palettes, bundled wallpapers, and a local custom background. The saved appearance is painted before the app bundle loads.
 - Quick navigation dock above the bookmarks. Add a shortcut by URL, or by dragging a browser tab or saved link onto the dock. Reorder, edit, and remove shortcuts locally, and undo a removal during the current page session.
 - Link groups laid out in a masonry grid, with distinct pastel header colors assigned automatically and adjustable per group.
-- Optional snapshot sync to JSONBin, GitHub Gist, Cloudflare KV, Upstash Redis, or a custom REST endpoint. Quick-nav shortcuts are included in that snapshot.
+- Optional snapshot sync to Upstash Redis, GitHub Gist, Cloudflare KV, JSONBin, or a custom REST endpoint. Quick-nav shortcuts are included in that snapshot.
 
 Incomplete or awaiting verification:
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decryptPayload, encryptPayload, isEncryptedPayload } from "./encryption";
+import { decryptPayload, encryptPayload, isEncryptedPayload, SyncDecryptError } from "./encryption";
 
 describe("encryption service", () => {
   it("returns unencrypted raw string if no password is provided", async () => {
@@ -25,6 +25,7 @@ describe("encryption service", () => {
     const raw = JSON.stringify({ data: 42 });
     const encrypted = await encryptPayload(raw, "correct_pass");
 
-    await expect(decryptPayload(encrypted, "wrong_pass")).rejects.toThrow();
+    await expect(decryptPayload(encrypted, "wrong_pass")).rejects.toBeInstanceOf(SyncDecryptError);
+    await expect(decryptPayload(encrypted, "")).rejects.toBeInstanceOf(SyncDecryptError);
   });
 });

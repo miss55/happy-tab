@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { encryptPayload, SyncDecryptError } from "./encryption";
 import { isValidSyncSnapshot, parseStoredSnapshot } from "./snapshotCodec";
 import { PLACEHOLDER_SYNC_SNAPSHOT } from "./placeholderSnapshot";
 
@@ -22,5 +23,12 @@ describe("snapshotCodec", () => {
     await expect(parseStoredSnapshot(JSON.stringify(PLACEHOLDER_SYNC_SNAPSHOT))).resolves.toEqual(
       PLACEHOLDER_SYNC_SNAPSHOT
     );
+  });
+
+  it("rejects an encrypted snapshot when the password is wrong and does not treat it as empty", async () => {
+    const encrypted = await encryptPayload(JSON.stringify(PLACEHOLDER_SYNC_SNAPSHOT), "correct-password");
+
+    await expect(parseStoredSnapshot(encrypted, "wrong-password")).rejects.toBeInstanceOf(SyncDecryptError);
+    await expect(parseStoredSnapshot(encrypted, "")).rejects.toBeInstanceOf(SyncDecryptError);
   });
 });

@@ -1,5 +1,5 @@
 import type { SyncSnapshot } from "./types";
-import { decryptPayload } from "./encryption";
+import { decryptPayload, SyncDecryptError } from "./encryption";
 
 export const isValidSyncSnapshot = (value: unknown): value is SyncSnapshot => {
   if (!value || typeof value !== "object") return false;
@@ -38,7 +38,10 @@ export const parseStoredSnapshot = async (
     const decryptedStr = await decryptPayload(payloadStr, encryptionKey);
     const parsed: unknown = JSON.parse(decryptedStr);
     return isValidSyncSnapshot(parsed) ? parsed : null;
-  } catch {
+  } catch (error) {
+    if (error instanceof SyncDecryptError) {
+      throw error;
+    }
     return null;
   }
 };

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getDefaultSyncConfig } from "@/storage/syncStorage";
+import { encryptPayload, SyncDecryptError } from "../encryption";
 import { PLACEHOLDER_SYNC_SNAPSHOT } from "../placeholderSnapshot";
 import { UpstashRedisProvider } from "./upstashRedisProvider";
 
@@ -66,6 +67,21 @@ describe("UpstashRedisProvider", () => {
 
     const provider = new UpstashRedisProvider();
     await expect(provider.pullSnapshot(makeConfig())).resolves.toBeNull();
+  });
+
+  it("fails closed when the stored snapshot cannot be decrypted", async () => {
+    const encrypted = await encryptPayload(JSON.stringify(PLACEHOLDER_SYNC_SNAPSHOT), "correct-password");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(1))
+      .mockResolvedValueOnce(jsonResponse(encrypted));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const provider = new UpstashRedisProvider();
+    const config = makeConfig();
+    config.encryptionKey = "wrong-password";
+
+    await expect(provider.pullSnapshot(config)).rejects.toBeInstanceOf(SyncDecryptError);
   });
 
   it("creates the snapshot key with SET when pushing", async () => {

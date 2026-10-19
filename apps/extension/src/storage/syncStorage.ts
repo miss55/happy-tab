@@ -5,7 +5,7 @@ const SYNC_STORAGE_KEY = "happy_tab_sync_config";
 const hasChromeStorage = () => typeof chrome !== "undefined" && Boolean(chrome.storage?.local);
 
 export const getDefaultSyncConfig = (): SyncProviderConfig => ({
-  provider: "jsonbin",
+  provider: "upstash_redis",
   enabled: false,
   autoSync: false,
   syncIntervalMinutes: 15,

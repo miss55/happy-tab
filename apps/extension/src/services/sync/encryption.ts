@@ -1,5 +1,3 @@
-import type { SyncSnapshot } from "./types";
-
 const ENCRYPTION_PREFIX = "enc:v1:";
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
@@ -21,6 +19,13 @@ const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
   }
   return bytes.buffer;
 };
+
+export class SyncDecryptError extends Error {
+  constructor() {
+    super("cloud.decryptFailed");
+    this.name = "SyncDecryptError";
+  }
+}
 
 const deriveKey = async (passphrase: string, salt: Uint8Array): Promise<CryptoKey> => {
   const encoder = new TextEncoder();
@@ -82,7 +87,7 @@ export const decryptPayload = async (payloadString: string, passphrase?: string)
   }
 
   if (!passphrase || passphrase.trim() === "") {
-    throw new Error("Payload is encrypted but no decryption key was provided.");
+    throw new SyncDecryptError();
   }
 
   try {
@@ -106,7 +111,10 @@ export const decryptPayload = async (payloadString: string, passphrase?: string)
     const decoder = new TextDecoder();
     return decoder.decode(decryptedBuffer);
   } catch (error) {
-    throw new Error("Failed to decrypt payload. Please check your encryption password.");
+    if (error instanceof SyncDecryptError) {
+      throw error;
+    }
+    throw new SyncDecryptError();
   }
 };
 

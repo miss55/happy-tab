@@ -82,10 +82,10 @@ Browser Tabs and Links are separate concepts and should stay separate in code an
 
 Sync is opt-in. The extension uploads an encrypted or plaintext snapshot to a storage provider the user already owns:
 
-- JSONBin.io
+- Upstash Redis
 - GitHub Gist
 - Cloudflare KV
-- Upstash Redis
+- JSONBin.io
 - Custom REST endpoint
 
 Conflict handling is last-write-wins based on item `updated_at`. Optional AES-256-GCM encryption runs in the extension before upload.

@@ -180,8 +180,10 @@ const linkEditForm = reactive({
   title: "",
   url: ""
 });
+const syncSettingsNotice = ref<MessageKey | null>(null);
+const syncSettingsNoticeIsError = ref(false);
 const syncForm = reactive<SyncProviderConfig>({
-  provider: "jsonbin",
+  provider: "upstash_redis",
   enabled: false,
   autoSync: false,
   syncIntervalMinutes: 15,
@@ -199,7 +201,7 @@ watch(
   syncConfig,
   (newVal) => {
     if (newVal) {
-      syncForm.provider = newVal.provider || "jsonbin";
+      syncForm.provider = newVal.provider || "upstash_redis";
       syncForm.enabled = Boolean(newVal.enabled);
       syncForm.autoSync = Boolean(newVal.autoSync);
       syncForm.syncIntervalMinutes = newVal.syncIntervalMinutes || 15;
@@ -235,13 +237,40 @@ const saveSyncSettings = async () => {
   await syncStore.updateConfig(syncForm);
 };
 
+const submitSyncSettings = async () => {
+  try {
+    await saveSyncSettings();
+    syncLastResult.value = null;
+    syncTestStatus.value = null;
+    syncSettingsNotice.value = "cloud.settingsSaved";
+    syncSettingsNoticeIsError.value = false;
+  } catch {
+    syncSettingsNotice.value = "cloud.settingsSaveFailed";
+    syncSettingsNoticeIsError.value = true;
+  }
+};
+
 const testSyncConnection = async () => {
-  await saveSyncSettings();
+  syncSettingsNotice.value = null;
+  try {
+    await saveSyncSettings();
+  } catch {
+    syncSettingsNotice.value = "cloud.settingsSaveFailed";
+    syncSettingsNoticeIsError.value = true;
+    return;
+  }
   await syncStore.testConnection();
 };
 
 const triggerManualSync = async () => {
-  await saveSyncSettings();
+  syncSettingsNotice.value = null;
+  try {
+    await saveSyncSettings();
+  } catch {
+    syncSettingsNotice.value = "cloud.settingsSaveFailed";
+    syncSettingsNoticeIsError.value = true;
+    return;
+  }
   await syncStore.triggerSync();
   await linksStore.loadLinks();
   await todosStore.loadTodos();
@@ -1843,7 +1872,7 @@ onBeforeUnmount(() => {
         </header>
 
         <div class="data-dialog-body">
-        <form class="sync-config-form" @submit.prevent="saveSyncSettings">
+        <form class="sync-config-form" @submit.prevent="submitSyncSettings">
           <div class="form-row">
             <label for="sync-provider">{{ t("cloud.provider") }}</label>
             <div class="select-control">
@@ -1852,10 +1881,10 @@ onBeforeUnmount(() => {
                 v-model="syncForm.provider"
                 @change="onProviderChange"
               >
-                <option value="jsonbin">JSONBin.io</option>
+                <option value="upstash_redis">Upstash Redis</option>
                 <option value="gist">GitHub Gist</option>
                 <option value="cloudflare_kv">Cloudflare KV</option>
-                <option value="upstash_redis">Upstash Redis</option>
+                <option value="jsonbin">JSONBin.io</option>
                 <option value="custom_rest">Custom REST API</option>
               </select>
             </div>
@@ -2009,13 +2038,28 @@ onBeforeUnmount(() => {
             <button class="secondary-button" type="button" :disabled="isTesting" @click="testSyncConnection">
               {{ isTesting ? t("cloud.testing") : t("cloud.testConnection") }}
             </button>
-            <button class="secondary-button" type="button" :disabled="isSyncing || !syncForm.enabled" @click="triggerManualSync">
+            <button
+              class="secondary-button"
+              type="button"
+              :disabled="isSyncing || !syncForm.enabled"
+              :aria-describedby="!syncForm.enabled ? 'sync-now-disabled-hint' : undefined"
+              @click="triggerManualSync"
+            >
               {{ isSyncing ? t("cloud.syncing") : t("cloud.syncNow") }}
             </button>
           </div>
         </form>
 
-        <div class="sync-status-info">
+        <div class="sync-status-info" aria-live="polite">
+          <p v-if="!syncForm.enabled" id="sync-now-disabled-hint" class="help-text">
+            {{ t("cloud.syncNowDisabledHint") }}
+          </p>
+          <p
+            v-if="syncSettingsNotice"
+            :class="syncSettingsNoticeIsError ? 'error-text' : 'success-text'"
+          >
+            {{ t(syncSettingsNotice) }}
+          </p>
           <p v-if="syncConfig.lastSyncTime">
             {{ t("cloud.lastSyncTime", { time: formatDateTime(syncConfig.lastSyncTime) }) }}
           </p>

@@ -80,7 +80,7 @@ API. This does not add an extra install warning when `tabs` is already declared.
 
 **optional: https://api.cloudflare.com/***  
 Requested only when the user tests or runs Cloudflare KV sync. Not granted at
-install. Other providers (JSONBin, GitHub Gist, Upstash, custom REST) use
+install. Other providers (Upstash, GitHub Gist, JSONBin, custom REST) use
 provider CORS and do not need host permissions.
 
 ## Chrome Web Store
@@ -132,8 +132,8 @@ control, drag to reorder, and open them from the same page. Open tabs appear
 alongside so you can switch, close, or save them as bookmarks.
 
 Bookmarks stay on this device by default. Export a JSON backup, import it on
-another machine, or turn on optional sync to storage you already own: JSONBin,
-GitHub Gist, Cloudflare KV, Upstash Redis, or a custom HTTPS endpoint. You can
+another machine, or turn on optional sync to storage you already own: Upstash Redis,
+GitHub Gist, Cloudflare KV, JSONBin, or a custom HTTPS endpoint. You can
 encrypt that snapshot first. Tabvia does not run its own account server and
 does not collect your data.
 
@@ -154,7 +154,7 @@ Tabvia 是一个长在新标签页上的书签管理器。把常用页面存进�
 并在同一页打开。当前打开的标签会列在旁边，方便切换、关闭，或保存为书签。
 
 书签默认只保存在这台电脑。可以导出 JSON 备份、在另一台设备导入，或开启同步，
-把快照发到你自己的 JSONBin、GitHub Gist、Cloudflare KV、Upstash Redis 或自定义
+把快照发到你自己的 Upstash Redis、GitHub Gist、Cloudflare KV、JSONBin 或自定义
 HTTPS 接口。可以先加密再上传。Tabvia 没有自有账号服务，也不会收集你的数据。
 
 这是新标签页上的独立书签分组，不替换、不同步浏览器自带书签栏。

@@ -6,6 +6,7 @@ import type { TodoItem } from "@/types/todos";
 import type { UsageStat } from "@/types/usageStats";
 
 import { isCloudflareKvConfigured } from "./cloudflareSetup";
+import { SyncDecryptError } from "./encryption";
 import {
   CloudflareHostPermissionDeniedError,
   requireCloudflareHostPermission
@@ -29,6 +30,9 @@ const ensureProviderAccess = async (config: SyncProviderConfig): Promise<void> =
 };
 
 export const messageKeyFromSyncError = (error: unknown, fallback: MessageKey): MessageKey => {
+  if (error instanceof SyncDecryptError) {
+    return "cloud.decryptFailed";
+  }
   if (error instanceof CloudflareHostPermissionDeniedError) {
     return "cloud.cfPermissionDenied";
   }

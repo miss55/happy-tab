@@ -15,7 +15,7 @@ Tabvia is a bookmark manager that replaces the browser new tab page. It shows cu
 2. Cloud sync is optional and must be explicitly enabled by the user.
 3. The extension must work without login.
 4. Do not upload user private data unless sync is enabled.
-5. Sync targets are user-owned third-party stores (JSONBin, GitHub Gist, Cloudflare KV, Upstash Redis, or a custom REST endpoint).
+5. Sync targets are user-owned third-party stores (Upstash Redis, GitHub Gist, Cloudflare KV, JSONBin, or a custom REST endpoint).
 6. Use soft delete with deleted_at for syncable entities.
 7. Use stable UUIDs for syncable entities.
 8. Keep Chrome permissions minimal.

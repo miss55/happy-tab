@@ -39,7 +39,7 @@ Status: implemented for user-owned storage providers.
 Done:
 
 - Opt-in snapshot sync UI.
-- JSONBin, GitHub Gist, Cloudflare KV, Upstash Redis, and custom REST providers.
+- Upstash Redis, GitHub Gist, Cloudflare KV, JSONBin, and custom REST providers.
 - Optional AES-256-GCM encryption before upload.
 - Last-write-wins merge on item `updated_at`.
 
