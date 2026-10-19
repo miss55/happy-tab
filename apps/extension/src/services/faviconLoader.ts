@@ -1,7 +1,7 @@
 // Only keep successful icons in memory; nothing is sent to a third-party icon service.
 const cache = new Map<string, string>();
 const pending = new Map<string, Promise<boolean>>();
-const CACHE_LIMIT = 128;
+const CACHE_LIMIT = 512;
 
 const siteKey = (pageUrl?: string): string | undefined => {
   try {
@@ -20,17 +20,37 @@ export const faviconInitial = (pageUrl?: string): string => {
   }
 };
 
-export const cachedFavicon = (pageUrl?: string): string | undefined => {
+const candidatesKey = (candidates: readonly string[]): string | undefined =>
+  candidates.length > 0 ? `candidates:${candidates.join("\n")}` : undefined;
+
+export const isSameFaviconSite = (left?: string, right?: string): boolean => {
+  const leftKey = siteKey(left);
+  return Boolean(leftKey) && leftKey === siteKey(right);
+};
+
+/**
+ * Exact candidate lists win so a remounted icon shows its own final image at once.
+ * The site entry is only a fallback; sibling surfaces on one origin use different URLs.
+ */
+export const cachedFavicon = (pageUrl: string | undefined, candidates: readonly string[] = []): string | undefined => {
+  const exactKey = candidatesKey(candidates);
+  const exact = exactKey ? cache.get(exactKey) : undefined;
+  if (exact) return exact;
   const key = siteKey(pageUrl);
   return key ? cache.get(key) : undefined;
 };
 
-export const rememberFavicon = (pageUrl: string | undefined, src: string): void => {
-  const key = siteKey(pageUrl);
-  if (!key) return;
+const remember = (key: string, src: string) => {
   cache.delete(key);
   cache.set(key, src);
   if (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value!);
+};
+
+export const rememberFavicon = (pageUrl: string | undefined, src: string, candidates: readonly string[] = []): void => {
+  const exactKey = candidatesKey(candidates);
+  if (exactKey) remember(exactKey, src);
+  const key = siteKey(pageUrl);
+  if (key) remember(key, src);
 };
 
 export const preloadFavicon = (src: string): Promise<boolean> => {

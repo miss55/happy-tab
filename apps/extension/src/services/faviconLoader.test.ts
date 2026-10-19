@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cachedFavicon, faviconInitial, preloadFavicon, rememberFavicon } from "./faviconLoader";
+import { cachedFavicon, faviconInitial, isSameFaviconSite, preloadFavicon, rememberFavicon } from "./faviconLoader";
 
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
@@ -35,11 +35,26 @@ describe("favicon loading", () => {
     expect(cachedFavicon("http://cache.test/")).toBeUndefined();
   });
 
+  it("prefers the icon resolved for the exact candidate list over a sibling on the same site", () => {
+    const tabCandidates = ["https://exact.test/favicon.ico"];
+    const linkCandidates = ["chrome-extension://tabvia/_favicon/?pageUrl=https%3A%2F%2Fexact.test%2F&size=32"];
+    rememberFavicon("https://exact.test/a", tabCandidates[0], tabCandidates);
+    rememberFavicon("https://exact.test/b", linkCandidates[0], linkCandidates);
+    expect(cachedFavicon("https://exact.test/a", tabCandidates)).toBe(tabCandidates[0]);
+    expect(cachedFavicon("https://exact.test/c", ["https://exact.test/unknown.png"])).toBe(linkCandidates[0]);
+  });
+
   it("bounds the successful-icon cache", () => {
     rememberFavicon("https://oldest.test", "old.png");
-    for (let index = 0; index < 128; index++) rememberFavicon(`https://site-${index}.test`, "new.png");
+    for (let index = 0; index < 512; index++) rememberFavicon(`https://site-${index}.test`, "new.png");
     expect(cachedFavicon("https://oldest.test")).toBeUndefined();
-    expect(cachedFavicon("https://site-127.test")).toBe("new.png");
+    expect(cachedFavicon("https://site-511.test")).toBe("new.png");
+  });
+
+  it("compares sites by origin", () => {
+    expect(isSameFaviconSite("https://same.test/a", "https://same.test/b")).toBe(true);
+    expect(isSameFaviconSite("https://same.test/a", "http://same.test/a")).toBe(false);
+    expect(isSameFaviconSite(undefined, "https://same.test/")).toBe(false);
   });
 
   it("derives a compact initial and handles unavailable addresses", () => {
