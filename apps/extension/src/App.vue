@@ -32,7 +32,16 @@ import {
   groupHeaderTone,
   resolveGroupColorIndex
 } from "@/services/groupHeaderColors";
+import { captureFlip, playFlip } from "@/services/flip";
 import { bindLinkGroupMasonry, type LinkGroupMasonryBinding } from "@/services/linkGroupMasonry";
+import {
+  insertionIndexForSlot,
+  resolveAnchoredDropSlot,
+  resolveLinkDropSlot,
+  sameGroupInsertionIndex,
+  type AnchoredDropSlot,
+  type LinkDropSlot
+} from "@/services/linkDropSlot";
 import { useTheme } from "@/services/theme";
 import { useWorkspaceSettings } from "@/services/workspaceSettings";
 import { builtInWallpapers } from "@/services/themePresets";
@@ -831,6 +840,12 @@ const deleteLink = async (link: Link) => {
 };
 
 const startGroupDrag = (event: DragEvent, group: LinkGroupWithLinks) => {
+  const card = event.currentTarget instanceof HTMLElement ? event.currentTarget.closest<HTMLElement>(".link-group") : null;
+
+  if (card) {
+    linkDragPreview.value?.start(event, null, { element: card, keepGrabOffset: true, variant: "group" });
+  }
+
   clearBookmarkDropTargets();
   draggingGroupId.value = group.id;
   event.dataTransfer?.setData("text/plain", group.id);
@@ -874,30 +889,82 @@ const handleGroupDragOver = (event: DragEvent, group: LinkGroupWithLinks) => {
     return;
   }
 
-  if (draggingGroupId.value && draggingGroupId.value !== group.id) {
-    groupDropTarget.value = {
-      groupId: group.id,
-      placement: getDropPlacement(event)
-    };
+  if (
+    draggingGroupId.value &&
+    draggingGroupId.value !== group.id &&
+    event.currentTarget instanceof HTMLElement
+  ) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const previous: AnchoredDropSlot | null = groupDropTarget.value
+      ? { id: groupDropTarget.value.groupId, placement: groupDropTarget.value.placement }
+      : null;
+    const next = resolveAnchoredDropSlot(
+      linkGroups.value.map((item) => item.id),
+      group.id,
+      event.clientY,
+      { top: rect.top, bottom: rect.bottom },
+      previous
+    );
+
+    if (!previous || previous.id !== next.id || previous.placement !== next.placement) {
+      groupDropTarget.value = { groupId: next.id, placement: next.placement };
+    }
+
     setMoveDropEffect(event);
     return;
   }
 
   if (draggingLink.value) {
-    linkDropTarget.value = {
-      groupId: group.id,
-      linkId: null,
-      placement: "after"
-    };
+    const list = event.currentTarget instanceof HTMLElement
+      ? event.currentTarget.querySelector<HTMLElement>(".saved-link-list")
+      : null;
+
+    if (list) {
+      updateLinkDropTarget(group, list, event.clientY);
+    }
+
     setMoveDropEffect(event);
   }
 };
 
-const handleLinkDragOver = (
-  event: DragEvent,
-  group: LinkGroupWithLinks,
-  link: Link
-) => {
+const linkDropRows = (group: LinkGroupWithLinks, list: HTMLElement) => {
+  const draggedId = draggingLink.value?.linkId;
+
+  return [...list.querySelectorAll<HTMLElement>(":scope > .saved-link-row")].flatMap((row, index) => {
+    const id = group.links[index]?.id;
+
+    if (!id || id === draggedId) {
+      return [];
+    }
+
+    const rect = row.getBoundingClientRect();
+    return [{ id, top: rect.top, bottom: rect.bottom }];
+  });
+};
+
+const updateLinkDropTarget = (group: LinkGroupWithLinks, list: HTMLElement, clientY: number) => {
+  const previous: LinkDropSlot | null =
+    linkDropTarget.value?.groupId === group.id
+      ? { linkId: linkDropTarget.value.linkId, placement: linkDropTarget.value.placement }
+      : null;
+  const next = resolveLinkDropSlot(linkDropRows(group, list), clientY, previous);
+
+  if (
+    previous &&
+    next.linkId === previous.linkId &&
+    next.placement === previous.placement
+  ) {
+    return;
+  }
+
+  linkDropTarget.value = {
+    groupId: group.id,
+    linkId: next.linkId,
+    placement: next.placement
+  };
+};
+
+const handleLinkDragOver = (event: DragEvent, group: LinkGroupWithLinks) => {
   if (draggingGroupId.value) {
     return;
   }
@@ -913,15 +980,17 @@ const handleLinkDragOver = (
     return;
   }
 
-  if (!draggingLink.value || draggingLink.value.linkId === link.id) {
+  if (!draggingLink.value || !(event.currentTarget instanceof HTMLElement)) {
     return;
   }
 
-  linkDropTarget.value = {
-    groupId: group.id,
-    linkId: link.id,
-    placement: getDropPlacement(event)
-  };
+  const list = event.currentTarget.closest<HTMLElement>(".saved-link-list");
+
+  if (!list) {
+    return;
+  }
+
+  updateLinkDropTarget(group, list, event.clientY);
   setMoveDropEffect(event);
 };
 
@@ -941,12 +1010,8 @@ const handleLinkListDragOver = (event: DragEvent, group: LinkGroupWithLinks) => 
     return;
   }
 
-  if (draggingLink.value) {
-    linkDropTarget.value = {
-      groupId: group.id,
-      linkId: null,
-      placement: "after"
-    };
+  if (draggingLink.value && event.currentTarget instanceof HTMLElement) {
+    updateLinkDropTarget(group, event.currentTarget, event.clientY);
     setMoveDropEffect(event);
   }
 };
@@ -982,19 +1047,26 @@ const dropGroup = async (event: DragEvent, targetGroup: LinkGroupWithLinks) => {
     return;
   }
 
+  const draggedId = draggingGroupId.value;
+  const slot = groupDropTarget.value;
   const orderedGroups = moveAround(
     linkGroups.value,
-    draggingGroupId.value,
-    targetGroup.id,
+    draggedId,
+    slot?.groupId ?? targetGroup.id,
     (group) => group.id,
-    groupDropTarget.value?.groupId === targetGroup.id
-      ? groupDropTarget.value.placement
-      : getDropPlacement(event)
+    slot?.placement ?? getDropPlacement(event)
   );
+  const nextIds = orderedGroups.map((group) => group.id);
+  const unchanged = nextIds.every((id, index) => id === linkGroups.value[index]?.id);
 
-  await linksStore.sortGroups(orderedGroups.map((group) => group.id));
   draggingGroupId.value = "";
   clearBookmarkDropTargets();
+
+  if (unchanged) {
+    return;
+  }
+
+  await linksStore.sortGroups(nextIds);
 };
 
 const endGroupDrag = () => {
@@ -1035,17 +1107,31 @@ const dropLink = async (targetGroup: LinkGroupWithLinks, targetLink?: Link, even
   }
 
   const { linkId, sourceGroupId } = draggingLink.value;
+  const sourceGroup = linkGroups.value.find((group) => group.id === sourceGroupId);
+  const draggedLink = sourceGroup?.links.find((link) => link.id === linkId);
+  const originalTarget = linkGroups.value.find((group) => group.id === targetGroup.id);
 
-  if (targetLink?.id === linkId) {
+  if (!draggedLink || !originalTarget) {
     draggingLink.value = null;
     clearBookmarkDropTargets();
     return;
   }
 
-  const sourceGroup = linkGroups.value.find((group) => group.id === sourceGroupId);
-  const draggedLink = sourceGroup?.links.find((link) => link.id === linkId);
+  const storedSlot: LinkDropSlot | null =
+    linkDropTarget.value?.groupId === targetGroup.id
+      ? { linkId: linkDropTarget.value.linkId, placement: linkDropTarget.value.placement }
+      : null;
+  const slot: LinkDropSlot = storedSlot ?? {
+    linkId: targetLink?.id ?? null,
+    placement: event ? getDropPlacement(event) : "after"
+  };
+  const originalIds = originalTarget.links.map((link) => link.id);
+  const insertionIndex =
+    sourceGroupId === targetGroup.id
+      ? sameGroupInsertionIndex(originalIds, linkId, slot)
+      : insertionIndexForSlot(originalIds, slot);
 
-  if (!draggedLink) {
+  if (insertionIndex === null) {
     draggingLink.value = null;
     clearBookmarkDropTargets();
     return;
@@ -1055,34 +1141,31 @@ const dropLink = async (targetGroup: LinkGroupWithLinks, targetLink?: Link, even
     ...group,
     links: group.links.filter((link) => link.id !== linkId)
   }));
-  const targetGroupIndex = nextGroups.findIndex((group) => group.id === targetGroup.id);
+  const targetLinks = nextGroups.find((group) => group.id === targetGroup.id)?.links;
 
-  if (targetGroupIndex < 0) {
+  if (!targetLinks) {
     draggingLink.value = null;
     clearBookmarkDropTargets();
     return;
   }
 
-  const targetLinks = nextGroups[targetGroupIndex].links;
-  const targetIndex = targetLink ? targetLinks.findIndex((link) => link.id === targetLink.id) : targetLinks.length;
-  const placement =
-    linkDropTarget.value?.groupId === targetGroup.id &&
-    linkDropTarget.value.linkId === (targetLink?.id ?? null)
-      ? linkDropTarget.value.placement
-      : event
-        ? getDropPlacement(event)
-        : "after";
-  const insertIndex = targetIndex >= 0 ? targetIndex + (placement === "after" ? 1 : 0) : targetLinks.length;
-
-  targetLinks.splice(insertIndex, 0, {
+  targetLinks.splice(Math.max(0, Math.min(insertionIndex, targetLinks.length)), 0, {
     ...draggedLink,
     group_id: targetGroup.id
   });
 
-  await linksStore.sortLinks(buildLinkSortInput(nextGroups));
+  const rowSnapshot = captureFlip(savedLinkRowElements());
+  const saving = linksStore.sortLinks(buildLinkSortInput(nextGroups));
   draggingLink.value = null;
   clearBookmarkDropTargets();
+  await nextTick();
+  playFlip(rowSnapshot, savedLinkRowElements());
+  await saving;
 };
+
+const savedLinkRowElements = () => [
+  ...(linkGroupsElement.value?.querySelectorAll<HTMLElement>(".link-group .saved-link-list > .saved-link-row") ?? [])
+];
 
 const endLinkDrag = () => {
   draggingLink.value = null;
@@ -1562,6 +1645,16 @@ watch(
   { flush: "post" }
 );
 
+watch(
+  () => draggingLink.value?.linkId ?? "",
+  (linkId, previousLinkId) => {
+    if (!linkId && previousLinkId) {
+      linkGroupMasonry?.refresh();
+    }
+  },
+  { flush: "post" }
+);
+
 onMounted(async () => {
   unsubscribeBrowserTabUpdates = subscribeBrowserTabUpdates((updated) => {
     for (const group of windowGroups.value) {
@@ -1572,7 +1665,7 @@ onMounted(async () => {
   if (linkGroupsElement.value) {
     linkGroupMasonry = bindLinkGroupMasonry(
       linkGroupsElement.value,
-      () => Boolean(draggingGroupId.value)
+      () => Boolean(draggingGroupId.value || draggingLink.value)
     );
   }
 
@@ -2747,10 +2840,12 @@ onBeforeUnmount(() => {
                   editing: editingLinkId === link.id,
                   arriving: arrivingLinkId === link.id,
                   'drop-before':
+                    draggingLink?.linkId !== link.id &&
                     linkDropTarget?.groupId === group.id &&
                     linkDropTarget.linkId === link.id &&
                     linkDropTarget.placement === 'before',
                   'drop-after':
+                    draggingLink?.linkId !== link.id &&
                     linkDropTarget?.groupId === group.id &&
                     linkDropTarget.linkId === link.id &&
                     linkDropTarget.placement === 'after'
@@ -2758,7 +2853,7 @@ onBeforeUnmount(() => {
                 :draggable="editingLinkId !== link.id"
                 @dragstart.stop="startLinkDrag($event, group, link)"
                 @dragend="endLinkDrag"
-                @dragover="handleLinkDragOver($event, group, link)"
+                @dragover="handleLinkDragOver($event, group)"
                 @drop.stop="dropOnGroupContent($event, group, link)"
                 @mouseenter="updateOverflowTitlePan"
                 @mouseleave="resetOverflowTitlePan"

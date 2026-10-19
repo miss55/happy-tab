@@ -1,3 +1,5 @@
+import { captureFlip, playFlip } from "@/services/flip";
+
 export type LinkGroupPlacement = {
   column: number;
   rowStart: number;
@@ -64,24 +66,26 @@ export const applyLinkGroupMasonry = (container: HTMLElement) => {
     readLinkGroupColumnCount(container),
     readLinkGroupMasonryGap(container)
   );
-
-  groups.forEach((group, index) => {
+  const changes = groups.flatMap((group, index) => {
     const placement = placements[index];
 
     if (!placement) {
-      return;
+      return [];
     }
 
     const signature = `${placement.column}:${placement.rowStart}:${placement.rowSpan}`;
+    const previous = group.getAttribute(PLACEMENT_ATTRIBUTE);
+    return previous === signature ? [] : [{ group, placement, signature, isFirstLayout: !previous }];
+  });
+  const snapshot = captureFlip(changes.flatMap((change) => (change.isFirstLayout ? [] : [change.group])));
 
-    if (group.getAttribute(PLACEMENT_ATTRIBUTE) === signature) {
-      return;
-    }
-
+  for (const { group, placement, signature } of changes) {
     group.setAttribute(PLACEMENT_ATTRIBUTE, signature);
     group.style.gridColumn = String(placement.column);
     group.style.gridRow = `${placement.rowStart} / span ${placement.rowSpan}`;
-  });
+  }
+
+  playFlip(snapshot);
 };
 
 export type LinkGroupMasonryBinding = {
