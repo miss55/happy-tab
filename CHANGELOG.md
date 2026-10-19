@@ -3,6 +3,24 @@
 Notable changes to the Tabvia extension. The version matches `apps/extension`
 and `apps/extension/public/manifest.json`.
 
+## [0.2.1] - 2026-10-20
+
+### Added
+
+- Dragging a saved link shows the insertion slot, and groups and links animate into their new positions.
+- Cloud sync confirms when settings are saved, and stops without uploading when the end-to-end password cannot decrypt the remote snapshot.
+
+### Changed
+
+- Bookmark order updates on screen immediately. A later refresh does not flash the loading state when groups are already visible.
+- The open-tab list keeps windows that have not changed.
+- Site icons are remembered for the exact icon candidate list, with a larger in-memory cache.
+- Custom accent text stays readable on the surface and soft accent backgrounds. Filled buttons use separate ink for the normal and hover fills.
+- Turning blur off also turns off wallpaper and panel blur. The blur slider can reach 0 in every style.
+- OLED and Cyber say that they always use dark mode, and keep the saved color mode for other styles.
+- With a wallpaper, the OLED bookmarks header uses a solid surface, as Soft and Minimal already do.
+- A new sync setup starts on Upstash Redis. Provider lists in the UI follow that order. Sync stays off until the user turns it on.
+
 ## [0.2.0] - 2026-10-17
 
 ### Added

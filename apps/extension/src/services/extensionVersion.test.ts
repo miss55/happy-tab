@@ -8,7 +8,7 @@ describe("getExtensionVersion", () => {
 
   it("falls back when the Chrome runtime is unavailable", () => {
     vi.stubGlobal("chrome", undefined);
-    expect(getExtensionVersion()).toBe("0.2.0");
+    expect(getExtensionVersion()).toBe("0.2.1");
   });
 
   it("reads the installed extension manifest version", () => {
