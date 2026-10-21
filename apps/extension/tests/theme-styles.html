@@ -3,6 +3,7 @@
 <script type="module">
 import { nextTick } from 'vue';
 import * as theme from '/src/services/theme.ts';
+import { groupHeaderStyle, groupHeaderTone } from '/src/services/groupHeaderColors.ts';
 import '/src/main.ts';
 const result = document.querySelector('#result');
 // Run against the real Vue controls and computed CSS, with transitions settled.
@@ -54,6 +55,18 @@ try {
           }
         }
       }
+      const header = group.querySelector('.link-group-header');
+      const resolvedMode = theme.resolveThemeMode(mode, style);
+      for (let index = 0; index < 50; index++) {
+        const variables = groupHeaderStyle(groupHeaderTone(index, resolvedMode));
+        for (const [name, value] of Object.entries(variables)) group.style.setProperty(name, value);
+        const headerCss = getComputedStyle(header);
+        if (style !== "soft") check(Math.abs(luminance(headerCss.backgroundColor) - luminance(variables["--group-header-background"])) > .01, `${style}/${mode}/${index}: header adapts to style`);
+        check(ratio(headerCss.color, headerCss.backgroundColor) >= 4.5, `${style}/${mode}/${index}: adapted header contrast`);
+      }
+      check(document.querySelectorAll('.theme-preview-group').length === 12, `${style}/${mode}: content previews`);
+      const oledPreview = getComputedStyle(document.querySelector('.theme-mini-preview-oled'));
+      check(luminance(oledPreview.backgroundColor) === 0, `${style}/${mode}: OLED preview stays black`);
       group.classList.remove('selected');
       const unselectedShadow = getComputedStyle(group).boxShadow;
       group.classList.add('selected');
@@ -76,6 +89,11 @@ try {
   }
   await theme.setThemeStyle('cyber'); await theme.setThemePalette('purple');
   check(getComputedStyle(document.documentElement).getPropertyValue('--theme-glow-color').trim() === '#c4b5fd', 'Cyber glow follows palette');
+  fixture.querySelector('.saved-link-button').blur();
+  const quietCyberShadow = getComputedStyle(group).boxShadow;
+  fixture.querySelector('.saved-link-button').focus();
+  check(getComputedStyle(group).boxShadow !== quietCyberShadow, 'Cyber glow reserved for keyboard focus');
+  fixture.querySelector('.saved-link-button').blur();
   await theme.updateThemeEffects({blur: true});
   await theme.setThemeStyle('glass');
   const glassSurface = getComputedStyle(group).backgroundColor;

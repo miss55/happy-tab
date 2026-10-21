@@ -18,3 +18,35 @@ describe("navDockLabel", () => {
     expect(navDockLabel("Welcome to a very long home page", "https://www.deepseek.com/chat")).toBe("deepseek");
   });
 });
+
+describe("navigation names from descriptive titles and regional hosts", () => {
+  it("does not use an English article as a site name", () => {
+    expect(navDockLabel("The Agent Skills Directory", "https://www.skills.sh/")).toBe("skills");
+    expect(navDockLabel("The", "https://www.skills.sh/")).toBe("skills");
+    expect(navDockLabel("A collection of useful tools", "https://tools.example.com/")).toBe("tools");
+  });
+
+  it("separates a Chinese brand from its slogan", () => {
+    expect(navDockLabel("阿里云-计算，为了无法计算的价值", "https://cn.aliyun.com/")).toBe("阿里云");
+    expect(navDockLabel("阿里云—计算，为了无法计算的价值", "https://cn.aliyun.com/")).toBe("阿里云");
+  });
+
+  it("skips regional prefixes when titles are missing or were shortened incorrectly", () => {
+    expect(navDockLabel("", "https://cn.aliyun.com/")).toBe("aliyun");
+    expect(navDockLabel("cn", "https://cn.aliyun.com/")).toBe("aliyun");
+    expect(navDockLabel("en", "https://en.example.com/")).toBe("example");
+    expect(navDockLabel("", "https://www.zh-cn.example.com.cn/")).toBe("example");
+    expect(navDockLabel("", "https://cn.com/")).toBe("cn");
+    expect(navDockLabel("", "https://cn.com.cn/")).toBe("cn");
+    expect(navDockLabel("", "https://docs.example.com/")).toBe("docs");
+  });
+
+  it("preserves meaningful short names and handles invalid URLs", () => {
+    expect(navDockLabel("阿里云", "https://cn.aliyun.com/")).toBe("阿里云");
+    expect(navDockLabel("云控制台", "https://cn.aliyun.com/")).toBe("云控制台");
+    expect(navDockLabel("My Skills", "https://www.skills.sh/")).toBe("My Skills");
+    expect(navDockLabel("V2EX", "https://v2ex.com/")).toBe("V2EX");
+    expect(navDockLabel("Codex", "https://chatgpt.com/codex")).toBe("Codex");
+    expect(navDockLabel("", "invalid URL")).toBe("");
+  });
+});

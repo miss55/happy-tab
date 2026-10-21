@@ -850,7 +850,8 @@ const groupHeaderStyleFor = (group: LinkGroupWithLinks) => {
 const groupColorSwatchStyle = (index: number) => {
   const tone = groupHeaderTone(index, resolvedThemeMode.value);
   return {
-    background: tone.top
+    ...groupHeaderStyle(tone),
+    background: "color-mix(in srgb, var(--group-header-background) var(--theme-group-color-strength), var(--theme-surface))"
   };
 };
 
@@ -2188,8 +2189,14 @@ onBeforeUnmount(() => {
                 :class="`theme-mini-preview-${option.style}`"
                 aria-hidden="true"
               >
-                <i></i>
-                <span><b></b><b></b><b></b><b></b></span>
+                <span class="theme-preview-toolbar"><i></i><i></i><i></i></span>
+                <span class="theme-preview-groups">
+                  <span v-for="sample in 2" :key="sample" class="theme-preview-group">
+                    <span class="theme-preview-heading">{{ t(option.label) }}</span>
+                    <span class="theme-preview-link"><i>T</i><span>Tabvia</span></span>
+                    <span class="theme-preview-link"><i>↗</i><span>example.com</span></span>
+                  </span>
+                </span>
               </span>
               <span class="theme-option-copy">
                 <strong>{{ t(option.label) }}</strong>

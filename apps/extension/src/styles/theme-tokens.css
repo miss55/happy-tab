@@ -29,6 +29,8 @@
   --theme-card-shadow: 0 12px 34px color-mix(in srgb, var(--theme-shadow) 82%, transparent);
   --theme-floating-shadow: 0 20px 50px color-mix(in srgb, var(--theme-shadow) 88%, transparent);
   --theme-group-shadow: var(--theme-card-shadow);
+  --theme-group-color-strength: 100%;
+  --theme-group-ink: var(--group-header-text, #111827);
   --theme-group-row-gap: 42px;
   --theme-group-column-gap: 40px;
   --theme-scrollbar-size: 10px;
@@ -121,7 +123,7 @@
   --theme-accent-soft: #eef2ff;
   --theme-accent-contrast: #ffffff;
   --theme-atmosphere: linear-gradient(160deg, #c9b6f2 0%, #6f8eb8 52%, #35557a 100%);
-  --theme-glass-surface: color-mix(in srgb, var(--theme-surface) 90%, transparent);
+  --theme-glass-surface: color-mix(in srgb, var(--theme-surface) 82%, transparent);
   --theme-glass-surface-strong: color-mix(in srgb, var(--theme-surface) 88%, transparent);
   --theme-glass-dialog: color-mix(in srgb, var(--theme-surface) 96%, transparent);
   --theme-glass-surface-soft: color-mix(in srgb, var(--theme-surface) 64%, transparent);
@@ -218,9 +220,9 @@
   --theme-accent-soft: #1a0b2e;
   --theme-accent-contrast: #041016;
   --theme-glow-color: var(--theme-accent);
-  --theme-glow-strength: 0.28;
+  --theme-glow-strength: 0.14;
   --theme-card-shadow: 0 6px 20px rgb(0 0 0 / 0.2);
-  --theme-group-shadow: var(--theme-floating-shadow);
+  --theme-group-shadow: var(--theme-card-shadow);
   --theme-floating-shadow:
     0 8px 24px rgb(0 0 0 / 0.25),
     0 0 24px color-mix(in srgb, var(--theme-glow-color) calc(var(--theme-glow-strength) * 100%), transparent);
@@ -468,3 +470,38 @@
   }
 }
 
+
+/* Keep stored group hues while adapting their visual weight to each material. */
+:root[data-theme-style="minimal"] {
+  --theme-group-color-strength: 20%;
+  --theme-group-ink: var(--theme-surface-text);
+}
+:root[data-theme-style="glass"] {
+  --theme-group-color-strength: 62%;
+}
+:root[data-theme-style="fluent"] {
+  --theme-group-color-strength: 32%;
+  --theme-group-ink: var(--theme-surface-text);
+  --theme-glass-surface: color-mix(in srgb, var(--theme-surface) 96%, transparent);
+  --theme-glass-surface-strong: color-mix(in srgb, var(--theme-surface) 98%, transparent);
+  --theme-glass-chrome: color-mix(in srgb, var(--theme-surface) 94%, transparent);
+  --theme-glass-chrome-strong: color-mix(in srgb, var(--theme-surface) 96%, transparent);
+  --theme-glass-highlight: rgb(255 255 255 / 16%);
+}
+:root[data-theme-mode="dark"][data-theme-style="glass"] {
+  --theme-group-color-strength: 24%;
+  --theme-group-ink: var(--theme-surface-text);
+  --theme-glass-surface: color-mix(in srgb, var(--theme-surface) 84%, transparent);
+  --theme-glass-surface-strong: color-mix(in srgb, var(--theme-surface) 90%, transparent);
+}
+:root[data-theme-mode="dark"][data-theme-style="fluent"] {
+  --theme-group-color-strength: 16%;
+}
+:root[data-theme-style="oled"] {
+  --theme-group-color-strength: 12%;
+  --theme-group-ink: var(--theme-surface-text);
+}
+:root[data-theme-style="cyber"] {
+  --theme-group-color-strength: 18%;
+  --theme-group-ink: var(--theme-surface-text);
+}

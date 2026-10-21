@@ -80,14 +80,18 @@ fills use darker shades for readable white button text.
 Group depth consumes `--theme-group-shadow`, so Soft retains its soft shadow,
 Minimal and OLED retain flat surfaces, and Cyber follows the chosen accent for
 its optional glow. The selected group has an accent-colored body outline.
-Dark Fluent uses denser layers than Glass; gallery previews follow the resolved
-mode and approximate each style's actual surface opacity.
+Fluent uses denser layers, quieter shadows, and subtler highlights than Glass
+in both modes. Glass retains more wallpaper color through its surfaces. Cyber
+keeps ordinary panels quiet and reserves its restrained glow for dialogs and
+keyboard focus. Gallery previews show miniature group headers, site icons, and
+link text in the resolved mode; OLED and Cyber always preview dark.
 
 Link groups share the current theme's surface, transparency, and blur instead
-of using a fixed glass material. Their headers use bright, opaque pastel title
-bars with dark text in both modes. Wallpaper and card transparency do not dull
-the header colors. The picker previews the exact header fill; no side stripe,
-gradient, or transparent tint is added.
+of using a fixed glass material. Their headers preserve the saved hue and shade
+while adapting visual weight to the style. Soft keeps bright pastel bars; Minimal and Fluent use restrained
+tints; dark Glass, OLED, and Cyber use darker tinted headers with light text.
+Header fills remain opaque for reliable contrast over wallpaper. The color
+picker previews the same adapted fill without changing saved palette indexes.
 Glass and Fluent use denser dark surfaces to preserve legibility over bright
 wallpaper; turning blur off still uses the theme's effect settings.
 
