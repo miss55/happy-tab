@@ -3,6 +3,17 @@
 Notable changes to the Tabvia extension. The version matches `apps/extension`
 and `apps/extension/public/manifest.json`.
 
+## [0.2.2] - 2026-10-22
+
+### Changed
+
+- Dragging a bookmark or shortcut slides neighbours into a stable gap, so the drop target does not flicker. Groups stay in their masonry columns while a drop target grows.
+- Dialogs close without flashing their blur.
+- Link group headers keep the saved color and change how strong it looks in each theme. Soft stays bright; Minimal and Fluent use a light tint; dark Glass, OLED, and Cyber use a darker tint with light text.
+- Theme previews show miniature group headers, site icons, and link text. OLED and Cyber previews stay dark.
+- Cyber keeps ordinary panels quiet and uses its glow on dialogs and keyboard focus. Fluent shadows are quieter, and Glass shows more of the wallpaper.
+- Navigation shortcut names skip English articles and regional host prefixes, and take a Chinese brand from the text before its slogan.
+
 ## [0.2.1] - 2026-10-20
 
 ### Added
