@@ -71,6 +71,10 @@ const start = (event: DragEvent, source: PreviewItem | null, options: PreviewOpt
   clone.style.removeProperty("grid-column");
   clone.style.removeProperty("grid-row");
   clone.classList.remove("dragging", "group-drop-before", "group-drop-after", "link-drop-target", "drop-before", "drop-after");
+  if (options.keepGrabOffset && options.variant !== "group") {
+    // Tilt/scale around the grabbed point so that point never drifts away from the pointer.
+    clone.style.transformOrigin = `${event.clientX - rect.left}px ${event.clientY - rect.top}px`;
+  }
   clone.removeAttribute("id");
   clone.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"));
   sourcePreview.value?.replaceChildren(clone);

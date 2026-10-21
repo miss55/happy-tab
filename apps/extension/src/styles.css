@@ -239,7 +239,24 @@ button:disabled {
   box-shadow: var(--theme-floating-shadow);
   backdrop-filter: blur(16px);
   transform-origin: top left;
-  animation: language-menu-enter 120ms ease-out;
+}
+
+.language-menu-enter-active,
+.language-menu-leave-active {
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
+}
+
+.language-menu-leave-active {
+  pointer-events: none;
+  transition-timing-function: ease-in;
+}
+
+.language-menu-enter-from,
+.language-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-3px) scale(0.98);
 }
 
 .language-menu-popover > button {
@@ -281,20 +298,7 @@ button:disabled {
   stroke-width: 2;
 }
 
-@keyframes language-menu-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-3px) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .language-menu-popover,
   .bookmark-drag-status,
   .save-feedback,
   .modal-enter-active > section,
@@ -307,6 +311,8 @@ button:disabled {
 
   .bookmark-create-enter-active,
   .bookmark-create-leave-active,
+  .language-menu-enter-active,
+  .language-menu-leave-active,
   .modal-enter-active::before,
   .modal-leave-active::before {
     transition: none;
@@ -473,16 +479,40 @@ h1 {
 
 .modal-enter-active > section,
 .modal-leave-active > section {
-  will-change: transform;
-  backdrop-filter: none;
+  will-change: transform, opacity;
 }
 
+/* Entering keeps the blur off for cost; leaving must keep it, otherwise a
+   translucent glass panel loses its blur on the first frame and flashes. */
 .modal-enter-active > section {
+  backdrop-filter: none;
   animation: modal-dialog-enter var(--theme-duration-normal) cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-leave-active > section {
-  animation: modal-dialog-leave var(--theme-duration-fast) ease-in;
+  animation: modal-dialog-leave var(--theme-duration-fast) ease-in forwards;
+}
+
+/* Vue only times the Transition root. The scrim and dialog animate on
+   descendants, so the root keeps a same-length transition of its own. */
+@property --modal-hold {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: --modal-hold var(--theme-duration-normal) linear;
+}
+
+.modal-leave-active {
+  transition-duration: var(--theme-duration-fast);
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  --modal-hold: 1;
 }
 
 @keyframes modal-dialog-enter {
@@ -497,6 +527,7 @@ h1 {
 
 @keyframes modal-dialog-leave {
   to {
+    opacity: 0;
     transform: translateY(8px) scale(0.98);
   }
 }
@@ -2632,6 +2663,35 @@ select:focus {
   opacity: 0.45;
 }
 
+/* Gap shown where an external tab or link would land. Same footprint as a card,
+   so the neighbours open up exactly the room the new shortcut needs. */
+.quick-nav-placeholder {
+  display: block;
+  width: 88px;
+  height: 80px;
+  box-sizing: border-box;
+  border: 1.5px dashed var(--theme-accent);
+  border-radius: var(--nav-card-radius, min(12px, var(--theme-radius-md)));
+  background: color-mix(in srgb, var(--theme-accent) 10%, transparent);
+}
+
+/* Reordering and adding slide neighbours into place. Removal stays instant
+   so the Add card and the following items do not jump while a ghost leaves. */
+.quick-nav-shift-move {
+  transition: transform var(--theme-duration-normal) var(--theme-ease-standard);
+}
+
+.quick-nav-shift-enter-active {
+  transition:
+    opacity var(--theme-duration-normal) ease-out,
+    transform var(--theme-duration-normal) var(--theme-ease-standard);
+}
+
+.quick-nav-shift-enter-from {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
 .quick-nav-link,
 .quick-nav-add {
   width: 88px;
@@ -4162,33 +4222,6 @@ select,
     0 0 0 6px color-mix(in srgb, var(--theme-accent) 16%, transparent);
 }
 
-.link-group.group-drop-before::before,
-.link-group.group-drop-after::after {
-  content: "";
-  position: absolute;
-  z-index: 7;
-  right: 10px;
-  left: 10px;
-  height: 4px;
-  border-radius: 99px;
-  background: var(--theme-accent);
-  box-shadow: 0 0 0 4px var(--theme-accent-soft);
-  pointer-events: none;
-  animation: drop-indicator-enter 160ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes drop-indicator-enter {
-  from {
-    opacity: 0;
-    transform: scaleX(0.6);
-  }
-
-  to {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
 .link-drag-preview-source > * {
   border-radius: var(--theme-radius-md);
   box-shadow: var(--theme-floating-shadow), 0 0 0 1px color-mix(in srgb, var(--theme-accent) 35%, transparent);
@@ -4205,14 +4238,6 @@ select,
   transform-origin: 80% 10%;
   -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
   mask-image: linear-gradient(to bottom, #000 72%, transparent);
-}
-
-.link-group.group-drop-before::before {
-  top: 2px;
-}
-
-.link-group.group-drop-after::after {
-  bottom: 2px;
 }
 
 .saved-link-row {
@@ -4246,35 +4271,26 @@ select,
   }
 }
 
-.saved-link-row.drop-before::before,
-.saved-link-row.drop-after::after {
-  content: "";
-  position: absolute;
-  z-index: 8;
-  right: 8px;
-  left: 8px;
-  height: 3px;
-  border-radius: 99px;
-  background: var(--theme-accent);
-  box-shadow: 0 0 0 3px var(--theme-accent-soft);
-  pointer-events: none;
-  animation: drop-indicator-enter 160ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.saved-link-row.drop-before::before {
-  top: -2px;
-}
-
-.saved-link-row.drop-after::after {
-  bottom: -2px;
-}
-
-.group-drop-hint.active {
-  border-color: var(--theme-accent);
-  color: var(--theme-accent-text);
+/* Gap that opens where a tab or a link from another group would land. Its height is
+   set inline to the dragged row so the neighbours move exactly one row. */
+.saved-link-placeholder {
+  box-sizing: border-box;
+  border: 1.5px dashed color-mix(in srgb, var(--theme-accent) 70%, transparent);
+  border-radius: 7px;
   background: var(--theme-accent-soft);
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--theme-accent) 18%, transparent);
-  transform: scale(1.02);
+  list-style: none;
+  pointer-events: none;
+  animation: saved-link-placeholder-in 160ms ease-out;
+}
+
+@keyframes saved-link-placeholder-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .bookmark-drag-status {
@@ -4507,11 +4523,6 @@ select,
   :root[data-theme-surface="acrylic"],
   :root[data-theme-surface="neon"]
 ) .modal-enter-active > section,
-:is(
-  :root[data-theme-surface="glass"],
-  :root[data-theme-surface="acrylic"],
-  :root[data-theme-surface="neon"]
-) .modal-leave-active > section,
 :is(
   :root[data-theme-surface="glass"],
   :root[data-theme-surface="acrylic"],
@@ -5185,12 +5196,9 @@ select,
   .modal-enter-active > section,
   .modal-leave-active > section,
   .saved-link-row.arriving,
+  .saved-link-placeholder,
   .link-group.browser-tab-drop-target,
-  .link-group.link-drop-target,
-  .link-group.group-drop-before::before,
-  .link-group.group-drop-after::after,
-  .saved-link-row.drop-before::before,
-  .saved-link-row.drop-after::after {
+  .link-group.link-drop-target {
     animation: none;
   }
 
@@ -5206,6 +5214,12 @@ select,
 
   .bookmark-create-enter-active,
   .bookmark-create-leave-active,
+  .quick-nav-shift-move,
+  .quick-nav-shift-enter-active,
+  .language-menu-enter-active,
+  .language-menu-leave-active,
+  .modal-enter-active,
+  .modal-leave-active,
   .modal-enter-active::before,
   .modal-leave-active::before {
     transition: none;

@@ -43,8 +43,40 @@ export const packLinkGroups = (
   });
 };
 
+/**
+ * Re-stacks groups inside the columns they already occupy. Used while a bookmark
+ * or tab is dragged into a group: the target grows, and only the groups below it
+ * in the same column should move, instead of the whole board re-packing.
+ */
+export const stackLinkGroups = (
+  heights: number[],
+  columns: number[],
+  rowGap: number
+): LinkGroupPlacement[] => {
+  const cursors = new Map<number, number>();
+
+  return heights.map((height, index) => {
+    const column = columns[index] ?? 1;
+    const rowSpan = linkGroupRowSpan(height, rowGap);
+    const rowStart = (cursors.get(column) ?? 0) + 1;
+    cursors.set(column, rowStart - 1 + rowSpan);
+    return { column, rowStart, rowSpan };
+  });
+};
+
+export type LinkGroupMasonryMode = "pack" | "keep-columns";
+
 const linkGroupElements = (container: HTMLElement) =>
   [...container.querySelectorAll<HTMLElement>(":scope > .link-group")];
+
+const readPlacedColumns = (groups: HTMLElement[], columnCount: number) => {
+  const columns = groups.map((group) => {
+    const column = Number.parseInt(group.getAttribute(PLACEMENT_ATTRIBUTE)?.split(":")[0] ?? "", 10);
+    return Number.isFinite(column) && column >= 1 && column <= columnCount ? column : 0;
+  });
+
+  return columns.every((column) => column > 0) ? columns : null;
+};
 
 export const parseLinkGroupColumnCount = (value: string) => {
   const count = Number.parseInt(value, 10);
@@ -59,13 +91,16 @@ export const readLinkGroupMasonryGap = (container: HTMLElement) => {
   return Number.isFinite(value) ? Math.max(0, value) : 0;
 };
 
-export const applyLinkGroupMasonry = (container: HTMLElement) => {
+export const applyLinkGroupMasonry = (container: HTMLElement, mode: LinkGroupMasonryMode = "pack") => {
   const groups = linkGroupElements(container);
-  const placements = packLinkGroups(
-    groups.map((group) => group.offsetHeight),
-    readLinkGroupColumnCount(container),
-    readLinkGroupMasonryGap(container)
-  );
+  const heights = groups.map((group) => group.offsetHeight);
+  const columnCount = readLinkGroupColumnCount(container);
+  const rowGap = readLinkGroupMasonryGap(container);
+  const placedColumns = mode === "keep-columns" ? readPlacedColumns(groups, columnCount) : null;
+  // A group without a previous column (first layout, new group) falls back to a full pack.
+  const placements = placedColumns
+    ? stackLinkGroups(heights, placedColumns, rowGap)
+    : packLinkGroups(heights, columnCount, rowGap);
   const changes = groups.flatMap((group, index) => {
     const placement = placements[index];
 
@@ -95,18 +130,13 @@ export type LinkGroupMasonryBinding = {
 
 export const bindLinkGroupMasonry = (
   container: HTMLElement,
-  isPaused: () => boolean
+  getMode: () => LinkGroupMasonryMode
 ): LinkGroupMasonryBinding => {
   let frame = 0;
 
   const layout = () => {
     frame = 0;
-
-    if (isPaused()) {
-      return;
-    }
-
-    applyLinkGroupMasonry(container);
+    applyLinkGroupMasonry(container, getMode());
   };
 
   const schedule = () => {
@@ -131,12 +161,8 @@ export const bindLinkGroupMasonry = (
   };
 
   const refresh = () => {
-    if (isPaused()) {
-      return;
-    }
-
     observe();
-    applyLinkGroupMasonry(container);
+    applyLinkGroupMasonry(container, getMode());
   };
 
   refresh();

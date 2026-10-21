@@ -32,16 +32,18 @@ import {
   groupHeaderTone,
   resolveGroupColorIndex
 } from "@/services/groupHeaderColors";
-import { captureFlip, playFlip } from "@/services/flip";
+import { captureFlip, playFlip, type FlipSnapshot } from "@/services/flip";
 import { bindLinkGroupMasonry, type LinkGroupMasonryBinding } from "@/services/linkGroupMasonry";
 import {
-  insertionIndexForSlot,
-  resolveAnchoredDropSlot,
-  resolveLinkDropSlot,
-  sameGroupInsertionIndex,
-  type AnchoredDropSlot,
-  type LinkDropSlot
-} from "@/services/linkDropSlot";
+  captureBookmarkDragGeometry,
+  clampIndex,
+  locateGroup,
+  reorderIds,
+  resolveGroupInsertion,
+  resolveRowInsertion,
+  type BookmarkDragGeometry,
+  type Point
+} from "@/services/bookmarkDragGeometry";
 import { isThemeModeLocked, useTheme } from "@/services/theme";
 import { useWorkspaceSettings } from "@/services/workspaceSettings";
 import { builtInWallpapers } from "@/services/themePresets";
@@ -143,13 +145,15 @@ const draggingGroupId = ref("");
 const linkGroupsElement = ref<HTMLElement | null>(null);
 let linkGroupMasonry: LinkGroupMasonryBinding | null = null;
 const draggingLink = ref<{ linkId: string; sourceGroupId: string } | null>(null);
-type DropPlacement = "before" | "after";
-const groupDropTarget = ref<{ groupId: string; placement: DropPlacement } | null>(null);
-const linkDropTarget = ref<{
-  groupId: string;
-  linkId: string | null;
-  placement: DropPlacement;
-} | null>(null);
+// Live drag previews. Groups and links are rendered from these so neighbours slide
+// aside and leave a gap where the dragged item would land.
+const groupPreviewOrder = ref<string[] | null>(null);
+const linkPreview = ref<{ groupId: string; index: number } | null>(null);
+const previewRowHeight = ref(48);
+const isSavingDroppedTab = ref(false);
+// Frozen at drag start so hit-testing never depends on cards that are mid-animation.
+let bookmarkDragGeometry: BookmarkDragGeometry | null = null;
+let groupDragGrab: Point | null = null;
 const draggingBrowserTab = ref<BrowserTab | null>(null);
 const linkDragPreview = ref<InstanceType<typeof LinkDragPreview> | null>(null);
 const incomingSavedLink = computed(() => {
@@ -469,10 +473,60 @@ const getDropPlacement = (event: DragEvent) => {
 };
 
 const clearBookmarkDropTargets = () => {
-  groupDropTarget.value = null;
-  linkDropTarget.value = null;
+  groupPreviewOrder.value = null;
+  linkPreview.value = null;
   browserTabDropGroupId.value = "";
+  bookmarkDragGeometry = null;
+  groupDragGrab = null;
 };
+
+const displayGroups = computed(() => {
+  const order = groupPreviewOrder.value;
+
+  if (!order) {
+    return linkGroups.value;
+  }
+
+  const byId = new Map(linkGroups.value.map((group) => [group.id, group]));
+  const ordered = order.flatMap((id) => byId.get(id) ?? []);
+  return ordered.length === linkGroups.value.length ? ordered : linkGroups.value;
+});
+
+type LinkRowEntry = { id: string; link?: Link };
+const INCOMING_ROW_PLACEHOLDER_ID = "__incoming-link-placeholder__";
+
+// A dragged link inside its own group is moved for real; anything coming from
+// outside (another group or a browser tab) shows a placeholder gap instead.
+const buildLinkRows = (group: LinkGroupWithLinks): LinkRowEntry[] => {
+  const entries: LinkRowEntry[] = group.links.map((link) => ({ id: link.id, link }));
+  const preview = linkPreview.value;
+
+  if (!preview || preview.groupId !== group.id) {
+    return entries;
+  }
+
+  const dragged = draggingLink.value;
+
+  if (dragged && dragged.sourceGroupId === group.id) {
+    const from = entries.findIndex((entry) => entry.id === dragged.linkId);
+
+    if (from < 0) {
+      return entries;
+    }
+
+    const [moved] = entries.splice(from, 1);
+    entries.splice(clampIndex(preview.index, entries.length), 0, moved as LinkRowEntry);
+    return entries;
+  }
+
+  entries.splice(clampIndex(preview.index, entries.length), 0, { id: INCOMING_ROW_PLACEHOLDER_ID });
+  return entries;
+};
+
+const linkRowsByGroup = computed(
+  () => new Map(displayGroups.value.map((group) => [group.id, buildLinkRows(group)]))
+);
+const groupRows = (group: LinkGroupWithLinks) => linkRowsByGroup.value.get(group.id) ?? [];
 
 const setMoveDropEffect = (event: DragEvent) => {
   if (event.dataTransfer) {
@@ -634,7 +688,11 @@ const markDroppedBookmark = (linkId: string) => {
   }, 420);
 };
 
-const saveBrowserTabToGroup = async (tab: BrowserTab, groupId: string) => {
+/**
+ * Saves a browser tab as a link. With `index` (a drop between rows) the new link
+ * is slotted into that position; without it the link is appended and highlighted.
+ */
+const saveBrowserTabToGroup = async (tab: BrowserTab, groupId: string, index?: number) => {
   if (!groupId || !tab.url.trim()) {
     return;
   }
@@ -643,7 +701,27 @@ const saveBrowserTabToGroup = async (tab: BrowserTab, groupId: string) => {
   const link = await linksStore.saveBrowserTab(tab, groupId);
   selectedGroupId.value = groupId;
 
-  if (link) {
+  if (link && index !== undefined) {
+    const nextGroups = linkGroups.value.map((group) => {
+      if (group.id !== groupId) {
+        return group;
+      }
+
+      const links = group.links.filter((item) => item.id !== link.id);
+      const created = group.links.find((item) => item.id === link.id) ?? link;
+      links.splice(clampIndex(index, links.length), 0, created);
+      return { ...group, links };
+    });
+
+    // Swap the placeholder for the real row in the same tick as the optimistic reorder.
+    clearBookmarkDropTargets();
+
+    try {
+      await linksStore.sortLinks(buildLinkSortInput(nextGroups));
+    } catch {
+      // The store reloads the saved order and surfaces the error.
+    }
+  } else if (link) {
     markDroppedBookmark(link.id);
   }
 
@@ -869,6 +947,19 @@ const deleteLink = async (link: Link) => {
   }
 };
 
+const bookmarkAreaPoint = (event: DragEvent): Point | null => {
+  const rect = linkGroupsElement.value?.getBoundingClientRect();
+  return rect ? { x: event.clientX - rect.left, y: event.clientY - rect.top } : null;
+};
+
+const captureDragGeometryNow = () => {
+  bookmarkDragGeometry = linkGroupsElement.value ? captureBookmarkDragGeometry(linkGroupsElement.value) : null;
+
+  if (bookmarkDragGeometry) {
+    previewRowHeight.value = bookmarkDragGeometry.rowHeight;
+  }
+};
+
 const startGroupDrag = (event: DragEvent, group: LinkGroupWithLinks) => {
   const card = event.currentTarget instanceof HTMLElement ? event.currentTarget.closest<HTMLElement>(".link-group") : null;
 
@@ -877,6 +968,13 @@ const startGroupDrag = (event: DragEvent, group: LinkGroupWithLinks) => {
   }
 
   clearBookmarkDropTargets();
+  captureDragGeometryNow();
+
+  if (card) {
+    const rect = card.getBoundingClientRect();
+    groupDragGrab = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  }
+
   draggingGroupId.value = group.id;
   event.dataTransfer?.setData("text/plain", group.id);
 
@@ -893,6 +991,7 @@ const startBrowserTabDrag = (event: DragEvent, tab: BrowserTab) => {
 
   linkDragPreview.value?.start(event, { title: tab.title, url: tab.url, icon: tab.favIconUrl });
   clearBookmarkDropTargets();
+  captureDragGeometryNow();
   draggingBrowserTab.value = tab;
   clearSavedTabFeedback();
   event.dataTransfer?.setData("text/plain", tab.url);
@@ -904,209 +1003,27 @@ const startBrowserTabDrag = (event: DragEvent, tab: BrowserTab) => {
 
 const endBrowserTabDrag = () => {
   draggingBrowserTab.value = null;
-  clearBookmarkDropTargets();
-};
 
-const handleGroupDragOver = (event: DragEvent, group: LinkGroupWithLinks) => {
-  event.preventDefault();
-
-  if (draggingBrowserTab.value) {
-    browserTabDropGroupId.value = group.id;
-
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = "copy";
-    }
-    return;
-  }
-
-  if (
-    draggingGroupId.value &&
-    draggingGroupId.value !== group.id &&
-    event.currentTarget instanceof HTMLElement
-  ) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const previous: AnchoredDropSlot | null = groupDropTarget.value
-      ? { id: groupDropTarget.value.groupId, placement: groupDropTarget.value.placement }
-      : null;
-    const next = resolveAnchoredDropSlot(
-      linkGroups.value.map((item) => item.id),
-      group.id,
-      event.clientY,
-      { top: rect.top, bottom: rect.bottom },
-      previous
-    );
-
-    if (!previous || previous.id !== next.id || previous.placement !== next.placement) {
-      groupDropTarget.value = { groupId: next.id, placement: next.placement };
-    }
-
-    setMoveDropEffect(event);
-    return;
-  }
-
-  if (draggingLink.value) {
-    const list = event.currentTarget instanceof HTMLElement
-      ? event.currentTarget.querySelector<HTMLElement>(".saved-link-list")
-      : null;
-
-    if (list) {
-      updateLinkDropTarget(group, list, event.clientY);
-    }
-
-    setMoveDropEffect(event);
-  }
-};
-
-const linkDropRows = (group: LinkGroupWithLinks, list: HTMLElement) => {
-  const draggedId = draggingLink.value?.linkId;
-
-  return [...list.querySelectorAll<HTMLElement>(":scope > .saved-link-row")].flatMap((row, index) => {
-    const id = group.links[index]?.id;
-
-    if (!id || id === draggedId) {
-      return [];
-    }
-
-    const rect = row.getBoundingClientRect();
-    return [{ id, top: rect.top, bottom: rect.bottom }];
-  });
-};
-
-const updateLinkDropTarget = (group: LinkGroupWithLinks, list: HTMLElement, clientY: number) => {
-  const previous: LinkDropSlot | null =
-    linkDropTarget.value?.groupId === group.id
-      ? { linkId: linkDropTarget.value.linkId, placement: linkDropTarget.value.placement }
-      : null;
-  const next = resolveLinkDropSlot(linkDropRows(group, list), clientY, previous);
-
-  if (
-    previous &&
-    next.linkId === previous.linkId &&
-    next.placement === previous.placement
-  ) {
-    return;
-  }
-
-  linkDropTarget.value = {
-    groupId: group.id,
-    linkId: next.linkId,
-    placement: next.placement
-  };
-};
-
-const handleLinkDragOver = (event: DragEvent, group: LinkGroupWithLinks) => {
-  if (draggingGroupId.value) {
-    return;
-  }
-
-  event.preventDefault();
-  event.stopPropagation();
-
-  if (draggingBrowserTab.value) {
-    browserTabDropGroupId.value = group.id;
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = "copy";
-    }
-    return;
-  }
-
-  if (!draggingLink.value || !(event.currentTarget instanceof HTMLElement)) {
-    return;
-  }
-
-  const list = event.currentTarget.closest<HTMLElement>(".saved-link-list");
-
-  if (!list) {
-    return;
-  }
-
-  updateLinkDropTarget(group, list, event.clientY);
-  setMoveDropEffect(event);
-};
-
-const handleLinkListDragOver = (event: DragEvent, group: LinkGroupWithLinks) => {
-  if (draggingGroupId.value) {
-    return;
-  }
-
-  event.preventDefault();
-  event.stopPropagation();
-
-  if (draggingBrowserTab.value) {
-    browserTabDropGroupId.value = group.id;
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = "copy";
-    }
-    return;
-  }
-
-  if (draggingLink.value && event.currentTarget instanceof HTMLElement) {
-    updateLinkDropTarget(group, event.currentTarget, event.clientY);
-    setMoveDropEffect(event);
-  }
-};
-
-const saveDraggedBrowserTab = async (targetGroup: LinkGroupWithLinks) => {
-  const tab = draggingBrowserTab.value;
-
-  if (!tab) {
-    return false;
-  }
-
-  draggingBrowserTab.value = null;
-  clearBookmarkDropTargets();
-  await saveBrowserTabToGroup(tab, targetGroup.id);
-  return true;
-};
-
-const dropGroup = async (event: DragEvent, targetGroup: LinkGroupWithLinks) => {
-  event.preventDefault();
-
-  if (await saveDraggedBrowserTab(targetGroup)) {
-    return;
-  }
-
-  if (draggingLink.value) {
-    await dropLink(targetGroup, undefined, event);
-    return;
-  }
-
-  if (!draggingGroupId.value || draggingGroupId.value === targetGroup.id) {
-    draggingGroupId.value = "";
+  // A dropped tab keeps its placeholder until the saved row replaces it.
+  if (!isSavingDroppedTab.value) {
     clearBookmarkDropTargets();
-    return;
   }
-
-  const draggedId = draggingGroupId.value;
-  const slot = groupDropTarget.value;
-  const orderedGroups = moveAround(
-    linkGroups.value,
-    draggedId,
-    slot?.groupId ?? targetGroup.id,
-    (group) => group.id,
-    slot?.placement ?? getDropPlacement(event)
-  );
-  const nextIds = orderedGroups.map((group) => group.id);
-  const unchanged = nextIds.every((id, index) => id === linkGroups.value[index]?.id);
-
-  draggingGroupId.value = "";
-  clearBookmarkDropTargets();
-
-  if (unchanged) {
-    return;
-  }
-
-  await linksStore.sortGroups(nextIds);
-};
-
-const endGroupDrag = () => {
-  draggingGroupId.value = "";
-  clearBookmarkDropTargets();
 };
 
 const startLinkDrag = (event: DragEvent, group: LinkGroupWithLinks, link: Link) => {
-  linkDragPreview.value?.start(event, { title: link.title, url: link.url, icon: link.favicon_url });
+  // Keep the carried row under the pointer exactly where it was grabbed.
+  linkDragPreview.value?.start(
+    event,
+    { title: link.title, url: link.url, icon: link.favicon_url },
+    { keepGrabOffset: true }
+  );
   clearBookmarkDropTargets();
+  captureDragGeometryNow();
+
+  if (event.currentTarget instanceof HTMLElement && event.currentTarget.offsetHeight > 0) {
+    previewRowHeight.value = event.currentTarget.offsetHeight;
+  }
+
   draggingLink.value = {
     linkId: link.id,
     sourceGroupId: group.id
@@ -1118,52 +1035,172 @@ const startLinkDrag = (event: DragEvent, group: LinkGroupWithLinks, link: Link) 
   }
 };
 
+const endGroupDrag = () => {
+  draggingGroupId.value = "";
+  clearBookmarkDropTargets();
+};
+
+const endLinkDrag = () => {
+  draggingLink.value = null;
+  clearBookmarkDropTargets();
+};
+
+/** Moves the dragged group to the slot whose masonry layout lands it nearest the carried card. */
+const updateGroupPreview = (event: DragEvent) => {
+  const draggedId = draggingGroupId.value;
+  const geometry = bookmarkDragGeometry;
+  const point = bookmarkAreaPoint(event);
+  const draggedBox = geometry?.groups.find((box) => box.id === draggedId);
+
+  if (!draggedId || !geometry || !point || !groupDragGrab || !draggedBox) {
+    return;
+  }
+
+  const baseIds = linkGroups.value.map((group) => group.id);
+  const previousIndex = (groupPreviewOrder.value ?? baseIds).indexOf(draggedId);
+  const cardCenter = {
+    x: point.x - groupDragGrab.x + (draggedBox.right - draggedBox.left) / 2,
+    y: point.y - groupDragGrab.y + (draggedBox.bottom - draggedBox.top) / 2
+  };
+  const nextIndex = resolveGroupInsertion(geometry, draggedId, cardCenter, previousIndex);
+
+  if (nextIndex === previousIndex) {
+    return;
+  }
+
+  const nextIds = reorderIds(baseIds, draggedId, nextIndex);
+  groupPreviewOrder.value = nextIds.every((id, index) => id === baseIds[index]) ? null : nextIds;
+};
+
+/** Opens a gap in the group under the pointer, for a dragged link or a browser tab. */
+const updateLinkPreview = (event: DragEvent) => {
+  const geometry = bookmarkDragGeometry;
+  const point = bookmarkAreaPoint(event);
+
+  if (!geometry || !point) {
+    return;
+  }
+
+  const box = locateGroup(geometry, point);
+
+  // The gap between cards keeps the current slot so crossing it does not flicker.
+  if (!box) {
+    return;
+  }
+
+  // The todo list and the "new group" card cannot take a drop.
+  if (!box.id) {
+    linkPreview.value = null;
+    browserTabDropGroupId.value = "";
+    return;
+  }
+
+  const current = linkPreview.value;
+  const previousIndex = current?.groupId === box.id ? current.index : null;
+  const index = resolveRowInsertion(box.rows, draggingLink.value?.linkId ?? null, point.y, previousIndex);
+
+  if (!current || current.groupId !== box.id || current.index !== index) {
+    linkPreview.value = { groupId: box.id, index };
+  }
+
+  if (draggingBrowserTab.value) {
+    browserTabDropGroupId.value = box.id;
+  }
+};
+
+const handleBookmarkAreaDragOver = (event: DragEvent) => {
+  if (draggingGroupId.value) {
+    event.preventDefault();
+    setMoveDropEffect(event);
+    updateGroupPreview(event);
+    return;
+  }
+
+  if (!draggingLink.value && !draggingBrowserTab.value) {
+    return;
+  }
+
+  updateLinkPreview(event);
+
+  if (!linkPreview.value) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = draggingBrowserTab.value ? "copy" : "move";
+  }
+};
+
+const handleBookmarkAreaDragLeave = (event: DragEvent) => {
+  const container = linkGroupsElement.value;
+
+  if (!container || isSavingDroppedTab.value) {
+    return;
+  }
+
+  const next = event.relatedTarget;
+  const rect = container.getBoundingClientRect();
+  const stillInside =
+    (next instanceof Node && container.contains(next)) ||
+    (event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom);
+
+  if (stillInside) {
+    return;
+  }
+
+  // Leaving the board closes the gap again.
+  groupPreviewOrder.value = null;
+  linkPreview.value = null;
+  browserTabDropGroupId.value = "";
+};
+
+const commitGroupDrop = async () => {
+  const order = groupPreviewOrder.value;
+  draggingGroupId.value = "";
+  clearBookmarkDropTargets();
+
+  if (!order) {
+    return;
+  }
+
+  await linksStore.sortGroups(order);
+};
+
 const buildLinkSortInput = (groups: LinkGroupWithLinks[]) =>
   groups.map((group) => ({
     group_id: group.id,
     link_ids: group.links.map((link) => link.id)
   }));
 
-const dropLink = async (targetGroup: LinkGroupWithLinks, targetLink?: Link, event?: DragEvent) => {
-  event?.preventDefault();
+const savedLinkRowElements = () => [
+  ...(linkGroupsElement.value?.querySelectorAll<HTMLElement>(".link-group .saved-link-list > .saved-link-row") ?? [])
+];
 
-  if (await saveDraggedBrowserTab(targetGroup)) {
-    return;
-  }
-
-  if (!draggingLink.value) {
+const commitLinkDrop = async () => {
+  const dragging = draggingLink.value;
+  const preview = linkPreview.value;
+  const finish = () => {
+    draggingLink.value = null;
     clearBookmarkDropTargets();
+  };
+
+  if (!dragging || !preview) {
+    finish();
     return;
   }
 
-  const { linkId, sourceGroupId } = draggingLink.value;
+  const { linkId, sourceGroupId } = dragging;
   const sourceGroup = linkGroups.value.find((group) => group.id === sourceGroupId);
   const draggedLink = sourceGroup?.links.find((link) => link.id === linkId);
-  const originalTarget = linkGroups.value.find((group) => group.id === targetGroup.id);
+  const targetGroup = linkGroups.value.find((group) => group.id === preview.groupId);
 
-  if (!draggedLink || !originalTarget) {
-    draggingLink.value = null;
-    clearBookmarkDropTargets();
-    return;
-  }
-
-  const storedSlot: LinkDropSlot | null =
-    linkDropTarget.value?.groupId === targetGroup.id
-      ? { linkId: linkDropTarget.value.linkId, placement: linkDropTarget.value.placement }
-      : null;
-  const slot: LinkDropSlot = storedSlot ?? {
-    linkId: targetLink?.id ?? null,
-    placement: event ? getDropPlacement(event) : "after"
-  };
-  const originalIds = originalTarget.links.map((link) => link.id);
-  const insertionIndex =
-    sourceGroupId === targetGroup.id
-      ? sameGroupInsertionIndex(originalIds, linkId, slot)
-      : insertionIndexForSlot(originalIds, slot);
-
-  if (insertionIndex === null) {
-    draggingLink.value = null;
-    clearBookmarkDropTargets();
+  if (!draggedLink || !targetGroup) {
+    finish();
     return;
   }
 
@@ -1174,45 +1211,68 @@ const dropLink = async (targetGroup: LinkGroupWithLinks, targetLink?: Link, even
   const targetLinks = nextGroups.find((group) => group.id === targetGroup.id)?.links;
 
   if (!targetLinks) {
-    draggingLink.value = null;
-    clearBookmarkDropTargets();
+    finish();
     return;
   }
 
-  targetLinks.splice(Math.max(0, Math.min(insertionIndex, targetLinks.length)), 0, {
-    ...draggedLink,
-    group_id: targetGroup.id
-  });
+  const index = clampIndex(preview.index, targetLinks.length);
+  const unchanged =
+    sourceGroupId === targetGroup.id && sourceGroup?.links.findIndex((link) => link.id === linkId) === index;
 
+  if (unchanged) {
+    finish();
+    return;
+  }
+
+  targetLinks.splice(index, 0, { ...draggedLink, group_id: targetGroup.id });
+
+  // The preview already moved the rows, so this only smooths what is still out of place.
   const rowSnapshot = captureFlip(savedLinkRowElements());
   const saving = linksStore.sortLinks(buildLinkSortInput(nextGroups));
-  draggingLink.value = null;
-  clearBookmarkDropTargets();
+  finish();
   await nextTick();
   playFlip(rowSnapshot, savedLinkRowElements());
   await saving;
 };
 
-const savedLinkRowElements = () => [
-  ...(linkGroupsElement.value?.querySelectorAll<HTMLElement>(".link-group .saved-link-list > .saved-link-row") ?? [])
-];
+const commitTabDrop = async () => {
+  const tab = draggingBrowserTab.value;
+  const preview = linkPreview.value;
+  draggingBrowserTab.value = null;
 
-const endLinkDrag = () => {
-  draggingLink.value = null;
-  clearBookmarkDropTargets();
-};
-
-const dropOnGroupContent = async (
-  event: DragEvent,
-  group: LinkGroupWithLinks,
-  targetLink?: Link
-) => {
-  if (draggingGroupId.value) {
-    await dropGroup(event, group);
+  if (!tab || !preview) {
+    clearBookmarkDropTargets();
     return;
   }
 
-  await dropLink(group, targetLink, event);
+  // Keep the placeholder (and the fixed-column layout) until the saved row replaces it.
+  isSavingDroppedTab.value = true;
+
+  try {
+    await saveBrowserTabToGroup(tab, preview.groupId, preview.index);
+  } finally {
+    isSavingDroppedTab.value = false;
+    clearBookmarkDropTargets();
+  }
+};
+
+const handleBookmarkAreaDrop = (event: DragEvent) => {
+  if (draggingGroupId.value) {
+    event.preventDefault();
+    void commitGroupDrop();
+    return;
+  }
+
+  if (draggingBrowserTab.value) {
+    event.preventDefault();
+    void commitTabDrop();
+    return;
+  }
+
+  if (draggingLink.value) {
+    event.preventDefault();
+    void commitLinkDrop();
+  }
 };
 
 const addTodo = async () => {
@@ -1666,22 +1726,29 @@ watch(
   { flush: "post" }
 );
 
+// Preview changes move rows and resize groups. Rows are measured before the DOM
+// patch and animated first, then the board re-lays out (which animates the groups).
+// Running the layout in the same flush avoids a frame where a grown group overlaps
+// the one below it.
+let previewRowSnapshot: FlipSnapshot | null = null;
+
 watch(
-  draggingGroupId,
-  (groupId) => {
-    if (!groupId) {
-      linkGroupMasonry?.refresh();
-    }
+  [groupPreviewOrder, linkPreview],
+  () => {
+    previewRowSnapshot = captureFlip(savedLinkRowElements());
   },
-  { flush: "post" }
+  { flush: "pre" }
 );
 
 watch(
-  () => draggingLink.value?.linkId ?? "",
-  (linkId, previousLinkId) => {
-    if (!linkId && previousLinkId) {
-      linkGroupMasonry?.refresh();
+  [groupPreviewOrder, linkPreview, draggingGroupId, draggingLink, draggingBrowserTab, isSavingDroppedTab],
+  () => {
+    if (previewRowSnapshot) {
+      playFlip(previewRowSnapshot, savedLinkRowElements());
+      previewRowSnapshot = null;
     }
+
+    linkGroupMasonry?.refresh();
   },
   { flush: "post" }
 );
@@ -1694,9 +1761,10 @@ onMounted(async () => {
     }
   });
   if (linkGroupsElement.value) {
-    linkGroupMasonry = bindLinkGroupMasonry(
-      linkGroupsElement.value,
-      () => Boolean(draggingGroupId.value || draggingLink.value)
+    // While a link or tab is dragged in, groups keep their columns so only the
+    // ones below the growing target move. Group drags re-pack to show the result.
+    linkGroupMasonry = bindLinkGroupMasonry(linkGroupsElement.value, () =>
+      draggingLink.value || draggingBrowserTab.value || isSavingDroppedTab.value ? "keep-columns" : "pack"
     );
   }
 
@@ -2669,6 +2737,9 @@ onBeforeUnmount(() => {
             'is-dragging-link': Boolean(draggingLink),
             'is-dragging-browser-tab': Boolean(draggingBrowserTab)
           }"
+          @dragover="handleBookmarkAreaDragOver"
+          @dragleave="handleBookmarkAreaDragLeave"
+          @drop="handleBookmarkAreaDrop"
         >
           <article v-if="workspaceSettings.showTodos" class="link-group todo-group">
             <header class="link-group-header">
@@ -2772,23 +2843,18 @@ onBeforeUnmount(() => {
           </article>
 
           <article
-            v-for="group in linkGroups"
+            v-for="group in displayGroups"
             :key="group.id"
             class="link-group"
+            :data-group-id="group.id"
             :class="{
               dragging: draggingGroupId === group.id,
               editing: editingGroupId === group.id,
               selected: activeGroupId === group.id,
               'browser-tab-drop-target': browserTabDropGroupId === group.id,
-              'link-drop-target': linkDropTarget?.groupId === group.id,
-              'group-drop-before':
-                groupDropTarget?.groupId === group.id && groupDropTarget.placement === 'before',
-              'group-drop-after':
-                groupDropTarget?.groupId === group.id && groupDropTarget.placement === 'after'
+              'link-drop-target': Boolean(draggingLink) && linkPreview?.groupId === group.id
             }"
             @click="selectedGroupId = group.id"
-            @dragover="handleGroupDragOver($event, group)"
-            @drop="dropGroup($event, group)"
           >
             <header class="link-group-header" :style="groupHeaderStyleFor(group)">
               <div class="link-group-heading">
@@ -2874,36 +2940,26 @@ onBeforeUnmount(() => {
               </details>
             </form>
 
-            <ul
-              v-if="group.links.length > 0"
-              class="saved-link-list"
-              @dragover="handleLinkListDragOver($event, group)"
-              @drop.stop="dropOnGroupContent($event, group)"
-            >
+            <ul v-if="groupRows(group).length > 0" class="saved-link-list">
+              <template v-for="{ id: rowId, link } in groupRows(group)" :key="rowId">
               <li
-                v-for="link in group.links"
-                :key="link.id"
+                v-if="!link"
+                class="saved-link-placeholder"
+                :style="{ height: `${previewRowHeight}px` }"
+                aria-hidden="true"
+              ></li>
+              <li
+                v-else
                 class="saved-link-row"
+                :data-link-id="link.id"
                 :class="{
                   dragging: draggingLink?.linkId === link.id,
                   editing: editingLinkId === link.id,
-                  arriving: arrivingLinkId === link.id,
-                  'drop-before':
-                    draggingLink?.linkId !== link.id &&
-                    linkDropTarget?.groupId === group.id &&
-                    linkDropTarget.linkId === link.id &&
-                    linkDropTarget.placement === 'before',
-                  'drop-after':
-                    draggingLink?.linkId !== link.id &&
-                    linkDropTarget?.groupId === group.id &&
-                    linkDropTarget.linkId === link.id &&
-                    linkDropTarget.placement === 'after'
+                  arriving: arrivingLinkId === link.id
                 }"
                 :draggable="editingLinkId !== link.id"
                 @dragstart.stop="startLinkDrag($event, group, link)"
                 @dragend="endLinkDrag"
-                @dragover="handleLinkDragOver($event, group)"
-                @drop.stop="dropOnGroupContent($event, group, link)"
                 @mouseenter="updateOverflowTitlePan"
                 @mouseleave="resetOverflowTitlePan"
                 @focusin="updateOverflowTitlePan"
@@ -2992,18 +3048,10 @@ onBeforeUnmount(() => {
                   </button>
                 </div>
               </li>
+              </template>
             </ul>
 
-            <p
-              v-else
-              class="muted-text group-drop-hint"
-              :class="{
-                active:
-                  linkDropTarget?.groupId === group.id || browserTabDropGroupId === group.id
-              }"
-              @dragover="handleLinkListDragOver($event, group)"
-              @drop.stop="dropOnGroupContent($event, group)"
-            >
+            <p v-else class="muted-text group-drop-hint">
               {{ t("bookmarks.dropHint") }}
             </p>
           </article>

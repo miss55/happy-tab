@@ -119,6 +119,7 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", closeOnOutside
       </svg>
     </button>
 
+    <Transition name="language-menu">
     <div
       v-if="isOpen"
       ref="menu"
@@ -142,5 +143,6 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", closeOnOutside
         </svg>
       </button>
     </div>
+    </Transition>
   </div>
 </template>

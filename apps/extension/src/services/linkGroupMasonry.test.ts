@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { linkGroupRowSpan, packLinkGroups, parseLinkGroupColumnCount } from "@/services/linkGroupMasonry";
+import {
+  linkGroupRowSpan,
+  packLinkGroups,
+  parseLinkGroupColumnCount,
+  stackLinkGroups
+} from "@/services/linkGroupMasonry";
 
 describe("link group masonry", () => {
   it("reserves the row gap under each group", () => {
@@ -27,6 +32,19 @@ describe("link group masonry", () => {
     expect(parseLinkGroupColumnCount("3")).toBe(3);
     expect(parseLinkGroupColumnCount("1")).toBe(1);
     expect(parseLinkGroupColumnCount("")).toBe(1);
+  });
+
+  it("keeps each group in its column and only pushes the ones below a grown group", () => {
+    const columns = packLinkGroups([100, 100, 100, 100], 3, 0).map((item) => item.column);
+    expect(columns).toEqual([1, 2, 3, 1]);
+
+    // The first group grows by 40px: the fourth (same column) moves down, the others stay.
+    const grown = stackLinkGroups([140, 100, 100, 100], columns, 0);
+    expect(grown.map((item) => item.column)).toEqual([1, 2, 3, 1]);
+    expect(grown.map((item) => item.rowStart)).toEqual([1, 1, 1, 141]);
+
+    // A full pack would have re-sorted the fourth group into the shortest column instead.
+    expect(packLinkGroups([140, 100, 100, 100], 3, 0).map((item) => item.column)).toEqual([1, 2, 3, 2]);
   });
 
   it("stacks every group when there is only one column", () => {

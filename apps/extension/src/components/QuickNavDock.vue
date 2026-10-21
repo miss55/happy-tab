@@ -81,23 +81,60 @@ const moveIds = (shortcutId: string, direction: -1 | 1) => {
   return nextIds;
 };
 
-const placeIds = (shortcutId: string, targetId: string, placement: "before" | "after") => {
-  const ids = shortcuts.value.map((shortcut) => shortcut.id).filter((id) => id !== shortcutId);
-  const targetIndex = ids.indexOf(targetId);
-  const insertAt = targetIndex < 0 ? ids.length : placement === "after" ? targetIndex + 1 : targetIndex;
-  ids.splice(insertAt, 0, shortcutId);
-  return ids;
-};
+// While dragging, the list renders a preview order so neighbours slide aside and
+// leave a gap at the slot under the pointer. `null` means no preview.
+type DockEntry = { id: string; shortcut?: NavShortcut };
 
-const placementFromEvent = (event: DragEvent): "before" | "after" => {
-  const target = event.currentTarget;
+const INCOMING_PLACEHOLDER_ID = "__incoming-placeholder__";
+const DEFAULT_SLOT_WIDTH = 88;
+const DEFAULT_SLOT_GAP = 12;
 
-  if (!(target instanceof HTMLElement)) {
-    return "before";
+const previewIndex = ref<number | null>(null);
+const isPlacingIncoming = ref(false);
+
+const displayEntries = computed<DockEntry[]>(() => {
+  const entries: DockEntry[] = shortcuts.value.map((shortcut) => ({ id: shortcut.id, shortcut }));
+  const index = previewIndex.value;
+
+  if (index === null) {
+    return entries;
   }
 
-  const rect = target.getBoundingClientRect();
-  return event.clientX > rect.left + rect.width / 2 ? "after" : "before";
+  if (draggingId.value) {
+    const from = entries.findIndex((entry) => entry.id === draggingId.value);
+
+    if (from < 0) {
+      return entries;
+    }
+
+    const [moved] = entries.splice(from, 1);
+    entries.splice(Math.min(index, entries.length), 0, moved as DockEntry);
+    return entries;
+  }
+
+  if ((isDragOver.value && canAcceptExternal.value) || isPlacingIncoming.value) {
+    entries.splice(Math.min(index, entries.length), 0, { id: INCOMING_PLACEHOLDER_ID });
+  }
+
+  return entries;
+});
+
+// Every card has the same width, so the slot under the pointer is derived from
+// geometry that does not move while neighbours animate. That keeps the target
+// stable and avoids the flicker of hit-testing against shifting cards.
+const slotIndexFromPointer = (event: DragEvent) => {
+  const list = navigationTrack.value?.querySelector<HTMLElement>(".quick-nav-list");
+  const lastIndex = draggingId.value ? shortcuts.value.length - 1 : shortcuts.value.length;
+
+  if (!list || lastIndex <= 0) {
+    return 0;
+  }
+
+  const first = list.firstElementChild;
+  const width = first instanceof HTMLElement && first.offsetWidth > 0 ? first.offsetWidth : DEFAULT_SLOT_WIDTH;
+  const gap = Number.parseFloat(getComputedStyle(list).columnGap) || DEFAULT_SLOT_GAP;
+  const slot = Math.floor((event.clientX - list.getBoundingClientRect().left) / (width + gap));
+  return Math.max(0, Math.min(slot, lastIndex));
 };
 
 const openForm = async (shortcut?: NavShortcut) => {
@@ -248,6 +285,7 @@ const startShortcutDrag = (event: DragEvent, shortcut: NavShortcut) => {
 const endShortcutDrag = () => {
   draggingId.value = "";
   isDragOver.value = false;
+  previewIndex.value = null;
 };
 
 const onDragOver = (event: DragEvent) => {
@@ -257,6 +295,7 @@ const onDragOver = (event: DragEvent) => {
 
   event.preventDefault();
   isDragOver.value = true;
+  previewIndex.value = slotIndexFromPointer(event);
 
   if (event.dataTransfer) {
     event.dataTransfer.dropEffect = draggingId.value || props.incomingLink ? "move" : "copy";
@@ -272,9 +311,14 @@ const onDragLeave = (event: DragEvent) => {
   }
 
   isDragOver.value = false;
+
+  // Leaving the dock closes the gap again, unless an incoming drop is being saved.
+  if (!isPlacingIncoming.value) {
+    previewIndex.value = null;
+  }
 };
 
-const addIncoming = async (event: DragEvent, targetId?: string) => {
+const addIncoming = async (index: number | null) => {
   const tab = props.incomingTab;
   const link = props.incomingLink;
   const source = tab?.url
@@ -284,61 +328,62 @@ const addIncoming = async (event: DragEvent, targetId?: string) => {
       : null;
 
   if (!source) {
+    previewIndex.value = null;
     return;
   }
+
+  // Keep the placeholder in its gap while the shortcut is written.
+  isPlacingIncoming.value = true;
 
   try {
     const created = await navStore.addShortcut(source);
+    const ids = shortcuts.value.map((shortcut) => shortcut.id).filter((id) => id !== created?.id);
 
-    if (created && targetId) {
-      await sortShortcuts(placeIds(created.id, targetId, placementFromEvent(event)));
+    if (created) {
+      ids.splice(Math.min(index ?? ids.length, ids.length), 0, created.id);
+    }
+
+    // Swap the placeholder for the real card in the same tick as the optimistic reorder.
+    isPlacingIncoming.value = false;
+    previewIndex.value = null;
+
+    if (created) {
+      await sortShortcuts(ids);
     }
   } catch {
     // Duplicate and invalid URLs surface through the store error.
+  } finally {
+    isPlacingIncoming.value = false;
+    previewIndex.value = null;
   }
 };
 
-const dropOnItem = async (event: DragEvent, shortcut: NavShortcut) => {
+const commitDrop = async (event: DragEvent) => {
   event.preventDefault();
   isDragOver.value = false;
 
   if (draggingId.value) {
-    if (draggingId.value === shortcut.id) {
-      draggingId.value = "";
-      return;
+    // The preview already shows the final order, so commit exactly what is on screen.
+    const ids = displayEntries.value.map((entry) => entry.id);
+    const changed = ids.some((id, position) => id !== shortcuts.value[position]?.id);
+    draggingId.value = "";
+    previewIndex.value = null;
+
+    if (changed) {
+      await sortShortcuts(ids);
     }
 
-    await sortShortcuts(placeIds(draggingId.value, shortcut.id, placementFromEvent(event)));
-    draggingId.value = "";
     return;
   }
 
-  await addIncoming(event, shortcut.id);
-};
-
-const dropOnTrack = async (event: DragEvent) => {
-  if (event.defaultPrevented) {
-    return;
-  }
-
-  event.preventDefault();
-  isDragOver.value = false;
-
-  if (draggingId.value) {
-    const ids = shortcuts.value.map((shortcut) => shortcut.id).filter((id) => id !== draggingId.value);
-    ids.push(draggingId.value);
-    await sortShortcuts(ids);
-    draggingId.value = "";
-    return;
-  }
-
-  await addIncoming(event);
+  const index = previewIndex.value;
+  await addIncoming(index);
 };
 </script>
 
 <template>
   <section class="quick-nav" data-navigation-drop-target :class="{ 'is-managing': isManaging, 'is-drop-target': isDragOver && (Boolean(draggingId) || canAcceptExternal) }"
-    :aria-label="t('nav.title')" @dragover="onDragOver" @dragleave="onDragLeave" @drop="dropOnTrack"
+    :aria-label="t('nav.title')" @dragover="onDragOver" @dragleave="onDragLeave" @drop="commitDrop"
     @keydown.esc="isManaging = false" @wheel="scrollHorizontalOnWheel($event, navigationTrack)">
     <header class="quick-nav-header">
       <div class="quick-nav-heading">
@@ -349,12 +394,12 @@ const dropOnTrack = async (event: DragEvent) => {
         @click="isManaging = !isManaging">{{ t(isManaging ? "nav.done" : "nav.manage") }}</button>
     </header>
     <div ref="navigationTrack" class="quick-nav-track">
-      <p v-if="shortcuts.length === 0" class="quick-nav-empty">{{ t("nav.empty") }}</p>
-      <ul v-else class="quick-nav-list">
-        <li v-for="shortcut in shortcuts" :key="shortcut.id" class="quick-nav-item" :class="{ dragging: draggingId === shortcut.id }"
-          :draggable="isManaging && !isMutating" @dragstart="startShortcutDrag($event, shortcut)" @dragend="endShortcutDrag"
-          @dragover="onDragOver" @drop.stop="dropOnItem($event, shortcut)">
-          <a v-if="!isManaging" class="quick-nav-link" :href="shortcut.url" :title="shortcut.title"
+      <p v-if="displayEntries.length === 0" class="quick-nav-empty">{{ t("nav.empty") }}</p>
+      <TransitionGroup v-else tag="ul" name="quick-nav-shift" class="quick-nav-list">
+        <li v-for="{ id, shortcut } in displayEntries" :key="id" class="quick-nav-item" :class="{ dragging: draggingId === id }"
+          :draggable="Boolean(shortcut) && isManaging && !isMutating" @dragstart="shortcut && startShortcutDrag($event, shortcut)" @dragend="endShortcutDrag">
+          <span v-if="!shortcut" class="quick-nav-placeholder" aria-hidden="true" />
+          <a v-else-if="!isManaging" class="quick-nav-link" :href="shortcut.url" :title="shortcut.title"
             :aria-label="navDockLabel(shortcut.title, shortcut.url)" draggable="false" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
             @click="openShortcut($event, shortcut)" @auxclick="openShortcutInBackground($event, shortcut)"
             @keydown="onShortcutKeydown($event, shortcut)">
@@ -379,7 +424,7 @@ const dropOnTrack = async (event: DragEvent) => {
               :title="t('common.delete')" @click="removeShortcut(shortcut)"><RowActionIcon name="trash" /></button>
           </div>
         </li>
-      </ul>
+      </TransitionGroup>
       <button v-if="isManaging" class="quick-nav-add" type="button" :title="t('nav.add')" @click="openForm()">
         <span aria-hidden="true"><RowActionIcon name="plus" /></span><span class="quick-nav-label">{{ t("common.add") }}</span>
       </button>

@@ -89,10 +89,22 @@ export const useNavStore = defineStore("nav", {
     async sortShortcuts(shortcutIds: string[]) {
       this.errorMessage = "";
 
+      // Apply the new order locally first so the list can animate right away
+      // instead of waiting for the IndexedDB round trip.
+      const byId = new Map(this.shortcuts.map((shortcut) => [shortcut.id, shortcut]));
+      const ordered = shortcutIds
+        .map((id) => byId.get(id))
+        .filter((shortcut): shortcut is NavShortcut => Boolean(shortcut));
+      if (ordered.length === this.shortcuts.length) {
+        this.shortcuts = ordered;
+      }
+
       try {
         await reorderNavShortcuts(shortcutIds);
         await this.loadShortcuts();
       } catch (error) {
+        // The database is the source of truth, so a failed write rolls the list back.
+        await this.loadShortcuts();
         this.errorMessage = messageKeyFromError(error, "error.sortNav");
         throw error;
       }
