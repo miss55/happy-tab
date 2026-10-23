@@ -3,6 +3,16 @@
 Notable changes to the Tabvia extension. The version matches `apps/extension`
 and `apps/extension/public/manifest.json`.
 
+## [0.2.3] - 2026-10-24
+
+### Changed
+
+- Refreshing shortcuts, todos, and open tabs no longer flashes the workspace loading banner. An empty list stays on the empty state.
+- Theme gallery cards show recommended style examples. Soft, Minimal, Glass, and Fluent stay light; OLED and Cyber stay dark. They do not follow the current accent, background, or effects.
+- A selected theme option uses one accent border and a check mark. Arrow keys, Home, and End move through the style list, with a separate keyboard focus outline.
+- A saved custom image says whether it is in use. Switching background type keeps the image, and the blur slider stays disabled while blur is off.
+- The system reduced-motion preference turns off CSS animations and transitions.
+
 ## [0.2.2] - 2026-10-22
 
 ### Changed
