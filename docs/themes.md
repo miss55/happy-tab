@@ -84,7 +84,19 @@ Fluent uses denser layers, quieter shadows, and subtler highlights than Glass
 in both modes. Glass retains more wallpaper color through its surfaces. Cyber
 keeps ordinary panels quiet and reserves its restrained glow for dialogs and
 keyboard focus. Gallery previews show miniature group headers, site icons, and
-link text in the resolved mode; OLED and Cyber always preview dark.
+link text as recommended style examples: Soft, Minimal, Glass and Fluent use
+light examples; OLED and Cyber use dark examples. They do not preview the current
+accent, background or effect overrides. The gallery explains this distinction.
+Theme selections use one accent border and a light tint; style cards also have a
+check mark. The style radio group supports arrow keys, Home and End, with a
+separate `:focus-visible` outline.
+
+Saved custom images are labeled as in use or saved but inactive. Switching
+background types preserves the image; only the active custom-image type exposes
+its adjustment controls. The blur slider is disabled while the blur effect is
+off, without resetting its saved value. Glow is specific to Cyber; other styles
+retain their existing shadows. System reduced-motion preferences suppress CSS
+animations and transitions even when the saved animation setting is enabled.
 
 Link groups share the current theme's surface, transparency, and blur instead
 of using a fixed glass material. Their headers preserve the saved hue and shade
@@ -151,3 +163,7 @@ It checks the real Vue mode controls, final computed colors, wallpaper title
 protection, disabled blur, group selection, and style/palette transitions.
 The HTML harness in `apps/extension/tests/theme-styles.html` is not a production
 build entry and is not included in the extension package.
+The browser checks also exercise keyboard selection, native keyboard focus,
+runtime system appearance/reduced-motion changes, uploaded-image retention, and
+settings recovery across a real page reload. Set `THEME_SCREENSHOT_DIR` to an
+output directory to retain representative theme and keyboard-focus screenshots.

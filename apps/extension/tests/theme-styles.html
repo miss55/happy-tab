@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>*, *::before, *::after { transition: none !important; animation: none !important; }</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style id="theme-test-transitions">*, *::before, *::after { transition: none !important; animation: none !important; }</style></head><body>
 <div id="theme-background"></div><div id="app"></div><pre id="result">RUNNING</pre>
 <script type="module">
 import { nextTick } from 'vue';
@@ -14,6 +14,19 @@ try {
   check(Boolean(document.querySelector('.theme-panel-button')), 'App mounted');
   document.querySelector('.theme-panel-button').click();
   await nextTick();
+  const restored = JSON.parse(sessionStorage.getItem('theme-reload-check') || 'null');
+  if (restored) {
+    const settings = theme.useTheme().settings.value;
+    check(settings.style === 'minimal' && settings.mode === 'light' && settings.palette === 'custom', 'Reload restores style, mode and palette');
+    check(settings.custom.accent === '#ff8800' && settings.background.type === 'gradient', 'Reload restores custom accent and background');
+    check(!settings.effects.blur && !settings.effects.glow && !settings.effects.animation, 'Reload restores effects');
+    check(theme.useTheme().backgroundAsset.value?.file_name === 'theme-check.png', 'Reload preserves inactive uploaded image');
+    check(document.querySelector('.theme-background-status').textContent.trim().length > 0, 'Inactive image has status feedback');
+    await theme.updateThemeBackground({type: 'custom-image'});
+    check(document.documentElement.dataset.backgroundImage === 'true', 'Restored image can be reactivated');
+    sessionStorage.removeItem('theme-reload-check');
+    result.textContent = `PASS ${restored.count + checks.length} browser checks (including reload)`;
+  } else {
   const fixture = document.createElement('div');
   fixture.innerHTML = '<div class="link-group"><div class="link-group-header">Header</div><div class="saved-link-row"><button class="saved-link-button"><span class="saved-link-title">Focus sample</span></button></div></div><div class="todo-dialog-actions"><button class="primary-button">Save</button></div>';
   document.body.append(fixture);
@@ -65,6 +78,12 @@ try {
         check(ratio(headerCss.color, headerCss.backgroundColor) >= 4.5, `${style}/${mode}/${index}: adapted header contrast`);
       }
       check(document.querySelectorAll('.theme-preview-group').length === 12, `${style}/${mode}: content previews`);
+      const cards = [...document.querySelectorAll('.theme-style-card')];
+      check(document.querySelector('.theme-style-grid').getAttribute('role') === 'radiogroup', `${style}/${mode}: style radio group`);
+      check(cards.filter(card => card.tabIndex === 0).length === 1, `${style}/${mode}: one keyboard tab stop`);
+      check(cards.filter(card => card.getAttribute('aria-checked') === 'true').length === 1, `${style}/${mode}: one checked style`);
+      check(getComputedStyle(cards.find(card => card.classList.contains('selected'))).boxShadow === 'none', `${style}/${mode}: single selection border`);
+      check(luminance(getComputedStyle(document.querySelector('.theme-mini-preview-soft')).backgroundColor) > .5, `${style}/${mode}: recommended Soft preview stays light`);
       const oledPreview = getComputedStyle(document.querySelector('.theme-mini-preview-oled'));
       check(luminance(oledPreview.backgroundColor) === 0, `${style}/${mode}: OLED preview stays black`);
       group.classList.remove('selected');
@@ -99,6 +118,36 @@ try {
   const glassSurface = getComputedStyle(group).backgroundColor;
   await theme.setThemeStyle('fluent');
   check(getComputedStyle(group).backgroundColor !== glassSurface, 'Fluent and Glass dark materials differ');
-  result.textContent = `PASS ${checks.length} browser checks`;
+  // Exercise actual Vue keyboard handlers, including wrapping and Home/End.
+  await theme.setThemeStyle('soft'); await nextTick();
+  const radios = [...document.querySelectorAll('.theme-style-card')];
+  for (const [start, key, expected] of [[0, 'ArrowLeft', 5], [5, 'ArrowRight', 0], [0, 'End', 5], [5, 'Home', 0], [0, 'ArrowDown', 1], [1, 'ArrowUp', 0]]) {
+    radios[start].focus();
+    radios[start].dispatchEvent(new KeyboardEvent('keydown', {key, bubbles: true, cancelable: true}));
+    await nextTick();
+    check(document.activeElement === radios[expected], `${key}: moves focus`);
+    check(radios[expected].getAttribute('aria-checked') === 'true', `${key}: selects style`);
+  }
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  await theme.setThemeBackgroundImage(new File([blob], 'theme-check.png', {type: 'image/png'}));
+  await nextTick();
+  const activeStatus = document.querySelector('.theme-background-status').textContent;
+  const asset = theme.useTheme().backgroundAsset.value;
+  for (const type of ['solid', 'gradient', 'wallpaper', 'custom-image']) {
+    await theme.updateThemeBackground({type}); await nextTick();
+    check(theme.useTheme().backgroundAsset.value?.id === asset.id, `${type}: keeps uploaded asset`);
+    const image = document.documentElement.style.getPropertyValue('--theme-background-image');
+    check(type === 'custom-image' ? image.includes('blob:') : !image.includes('blob:'), `${type}: only active image is rendered`);
+    check((document.querySelector('.theme-background-status').textContent === activeStatus) === (type === 'custom-image'), `${type}: active versus saved status`);
+    check(Boolean(document.querySelector('.theme-background-controls')) === (type === 'custom-image'), `${type}: image controls only when active`);
+  }
+  await theme.updateThemeEffects({blur: false, animation: false, glow: false}); await nextTick();
+  check(document.querySelector('.theme-background-controls input[max="20"]').disabled, 'Blur slider disabled while blur is off');
+  await theme.setThemeStyle('minimal'); await theme.setThemeMode('light');
+  await theme.updateCustomTheme({...theme.defaultCustomTheme, accent: '#ff8800'});
+  await theme.updateThemeBackground({type: 'gradient'});
+  sessionStorage.setItem('theme-reload-check', JSON.stringify({count: checks.length}));
+  location.reload();
+  }
 } catch (error) { result.textContent = `FAIL ${error.stack}`; }
 </script></body></html>

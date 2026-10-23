@@ -1289,6 +1289,7 @@ h1 {
 }
 
 .theme-style-card {
+  position: relative;
   min-width: 0;
   display: grid;
   gap: 8px;
@@ -1308,9 +1309,24 @@ h1 {
 .theme-style-card.selected {
   border-color: var(--theme-accent);
   background: color-mix(in srgb, var(--theme-accent) 12%, var(--theme-surface));
-  box-shadow: var(--theme-selection-ring);
+  box-shadow: none;
 }
 
+.theme-style-check {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--theme-border);
+  border-radius: 50%;
+  color: var(--theme-accent-text);
+  background: var(--theme-surface);
+  font-size: 13px;
+  font-weight: 700;
+}
 
 .theme-mini-preview {
   --preview-surface: #ffffff;
@@ -1392,13 +1408,7 @@ h1 {
   font-size: 7px;
   font-style: normal;
 }
-:where(:root[data-theme-mode="dark"]) .theme-mini-preview {
-  --preview-surface: #111827;
-  --preview-bg: #0b1120;
-  --preview-text: #e5e7eb;
-  --preview-border: #334155;
-  --preview-shadow: 0 4px 10px rgb(0 0 0 / 20%);
-}
+/* Gallery cards show recommended style examples, independent of active settings. */
 .theme-mini-preview-soft { --preview-header-text: #111827; }
 .theme-mini-preview-minimal {
   --preview-radius: 4px;
@@ -1421,20 +1431,6 @@ h1 {
   --preview-radius: 6px;
   --preview-shadow: 0 2px 5px rgb(71 99 140 / 8%);
 }
-:root[data-theme-mode="dark"] .theme-mini-preview-glass {
-  --preview-bg: linear-gradient(160deg, #24163d, #16324d, #0b1726);
-  --preview-surface: rgb(17 24 39 / 84%);
-  --preview-base: #111827;
-  --preview-header-strength: 24%;
-  --preview-header-text: #f8fafc;
-  --preview-border: rgb(255 255 255 / 22%);
-}
-:root[data-theme-mode="dark"] .theme-mini-preview-fluent {
-  --preview-bg: linear-gradient(160deg, #1b2740, #152033, #0f172a);
-  --preview-surface: rgb(17 24 39 / 96%);
-  --preview-base: #111827;
-  --preview-header-strength: 16%;
-}
 /* Locked dark styles must preview dark even while the current style is light. */
 :root .theme-mini-preview-oled {
   --preview-bg: #000000;
@@ -1455,6 +1451,14 @@ h1 {
   --preview-shadow: none;
 }
 .theme-mini-preview-cyber .theme-preview-toolbar { border-color: #22d3ee; }
+
+.theme-mini-preview-glass :is(.theme-preview-toolbar, .theme-preview-group) {
+  backdrop-filter: blur(6px) saturate(145%);
+}
+
+.theme-mini-preview-fluent :is(.theme-preview-toolbar, .theme-preview-group) {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%), var(--preview-shadow);
+}
 
 .theme-palette-list,
 .theme-background-type-list,
@@ -1708,6 +1712,13 @@ label.theme-custom-fields {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.theme-background-status {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--theme-muted);
+  white-space: normal;
 }
 
 .theme-background-file button {
@@ -4934,7 +4945,23 @@ select,
     inset 0 1px 0 var(--theme-glass-highlight),
     0 0 0 2px var(--theme-bg),
     0 0 0 4px var(--theme-accent),
-    0 0 16px color-mix(in srgb, var(--theme-accent) 32%, transparent);
+    0 0 16px color-mix(in srgb, var(--theme-accent) calc(var(--theme-glow-strength) * 100%), transparent);
+}
+
+/* Keep selection quiet in every material; keyboard focus has its own outline. */
+:root .theme-dialog :is(.theme-style-grid, .theme-mode-list, .theme-palette-list, .theme-background-type-list, .theme-wallpaper-grid) > button:hover:not(:disabled) {
+  border-color: var(--theme-accent);
+}
+
+:root .theme-dialog :is(.theme-style-grid, .theme-mode-list, .theme-palette-list, .theme-background-type-list, .theme-wallpaper-grid) > button.selected {
+  border-color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent) 8%, var(--theme-surface));
+  box-shadow: none;
+}
+
+:root .theme-dialog :is(.theme-style-grid, .theme-mode-list, .theme-palette-list, .theme-background-type-list, .theme-wallpaper-grid) > button:focus-visible {
+  outline: 2px solid var(--theme-accent-text);
+  outline-offset: 3px;
 }
 
 :is(

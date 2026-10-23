@@ -1517,6 +1517,18 @@ const applyThemeStyle = async (style: ThemeStyle) => {
   }
 };
 
+const navigateThemeStyles = (event: KeyboardEvent) => {
+  const directions: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+  const buttons = Array.from((event.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>('[role="radio"]'));
+  const current = buttons.indexOf(event.target as HTMLButtonElement);
+  if (current < 0 || !(event.key in directions || event.key === "Home" || event.key === "End")) return;
+  event.preventDefault();
+  const index = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1
+    : (current + directions[event.key] + buttons.length) % buttons.length;
+  buttons[index].focus();
+  buttons[index].click();
+};
+
 const applyThemePalette = async (palette: ThemePalette) => {
   themeErrorKey.value = null;
 
@@ -2167,17 +2179,20 @@ onBeforeUnmount(() => {
 
         <div class="data-dialog-body theme-dialog-scroll-area">
           <header class="theme-setting-header theme-gallery-heading">
-            <h3>{{ t("theme.gallery") }}</h3>
+            <h3 id="theme-gallery-title">{{ t("theme.gallery") }}</h3>
             <p>{{ t("theme.galleryDescription") }}</p>
           </header>
-          <div class="theme-style-grid">
+          <div class="theme-style-grid" role="radiogroup" aria-labelledby="theme-gallery-title" @keydown="navigateThemeStyles">
             <button
               v-for="option in themeStyleOptions"
               :key="option.style"
               type="button"
               class="theme-style-card"
               :class="{ selected: themeSettings.style === option.style }"
-              :aria-pressed="themeSettings.style === option.style"
+              role="radio"
+              :aria-checked="themeSettings.style === option.style"
+              :aria-label="t(option.label)"
+              :tabindex="themeSettings.style === option.style ? 0 : -1"
               @click="applyThemeStyle(option.style)"
             >
               <span
@@ -2198,6 +2213,7 @@ onBeforeUnmount(() => {
                 <strong>{{ t(option.label) }}</strong>
                 <small>{{ t(option.description) }}</small>
               </span>
+              <span v-if="themeSettings.style === option.style" class="theme-style-check" aria-hidden="true">✓</span>
             </button>
           </div>
 
@@ -2324,6 +2340,7 @@ onBeforeUnmount(() => {
 
             <div v-if="themeBackgroundAsset" class="theme-background-file">
               <span>
+                <strong class="theme-background-status">{{ t(themeSettings.background.type === 'custom-image' ? 'theme.imageInUse' : 'theme.imageSaved') }}</strong>
                 {{
                   t("theme.backgroundImageSelected", {
                     name: themeBackgroundAsset.file_name,
@@ -2385,7 +2402,7 @@ onBeforeUnmount(() => {
                   max="20"
                   step="1"
                   :value="themeSettings.background.blur"
-                  :disabled="!themeBackgroundAsset || isThemeBackgroundBusy"
+                  :disabled="!themeBackgroundAsset || isThemeBackgroundBusy || !themeSettings.effects.blur"
                   @change="changeThemeBackgroundNumber('blur', $event)"
                 />
               </label>
