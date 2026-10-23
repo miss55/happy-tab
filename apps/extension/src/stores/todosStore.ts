@@ -30,8 +30,9 @@ export const useTodosStore = defineStore("todos", {
   },
 
   actions: {
-    async loadTodos() {
-      this.isLoading = true;
+    async loadTodos({ background = false }: { background?: boolean } = {}) {
+      // Keep the workspace banner and the empty state stable during refreshes.
+      if (!background) this.isLoading = true;
       this.errorMessage = "";
 
       try {
@@ -39,7 +40,7 @@ export const useTodosStore = defineStore("todos", {
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.loadTodos");
       } finally {
-        this.isLoading = false;
+        if (!background) this.isLoading = false;
       }
     },
 
@@ -48,7 +49,7 @@ export const useTodosStore = defineStore("todos", {
 
       try {
         const todo = await createTodo({ title });
-        await this.loadTodos();
+        await this.loadTodos({ background: true });
         return todo;
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.createTodo");
@@ -61,7 +62,7 @@ export const useTodosStore = defineStore("todos", {
 
       try {
         await updateTodo({ id: todoId, title });
-        await this.loadTodos();
+        await this.loadTodos({ background: true });
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.updateTodo");
         throw error;
@@ -73,7 +74,7 @@ export const useTodosStore = defineStore("todos", {
 
       try {
         await toggleTodo(todoId, completed);
-        await this.loadTodos();
+        await this.loadTodos({ background: true });
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.updateTodo");
         throw error;
@@ -85,7 +86,7 @@ export const useTodosStore = defineStore("todos", {
 
       try {
         await softDeleteTodo(todoId);
-        await this.loadTodos();
+        await this.loadTodos({ background: true });
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.deleteTodo");
         throw error;
@@ -97,7 +98,7 @@ export const useTodosStore = defineStore("todos", {
 
       try {
         await reorderTodos({ todo_ids: todoIds });
-        await this.loadTodos();
+        await this.loadTodos({ background: true });
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.sortTodos");
         throw error;

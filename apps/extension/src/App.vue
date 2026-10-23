@@ -277,7 +277,7 @@ const triggerManualSync = async () => {
   }
   await syncStore.triggerSync();
   await linksStore.loadLinks();
-  await todosStore.loadTodos();
+  await todosStore.loadTodos({ background: true });
 };
 const isDataPanelOpen = ref(false);
 const isThemePanelOpen = ref(false);
@@ -597,12 +597,8 @@ let browserTabsRequest = 0;
 
 const loadBrowserTabs = async () => {
   const requestId = ++browserTabsRequest;
-  const showLoading = windowGroups.value.length === 0;
-
-  if (showLoading) {
-    isTabsLoading.value = true;
-  }
-
+  // isTabsLoading starts true and only covers the initial fetch. Refreshing an
+  // empty result must not flash the workspace banner or hide the empty state.
   tabsErrorMessage.value = "";
 
   try {
@@ -624,7 +620,7 @@ const loadBrowserTabs = async () => {
 
     tabsErrorMessage.value = "error.loadBrowserTabs";
   } finally {
-    if (showLoading && requestId === browserTabsRequest) {
+    if (requestId === browserTabsRequest) {
       isTabsLoading.value = false;
     }
   }
@@ -1455,7 +1451,7 @@ const importLocalData = async () => {
 
   try {
     const summary = await restoreTabviaBackup(selectedImportBackup.value, dataImportMode.value);
-    await Promise.all([linksStore.loadLinks(), todosStore.loadTodos()]);
+    await Promise.all([linksStore.loadLinks(), todosStore.loadTodos({ background: true })]);
 
     if (!linkGroups.value.some((group) => group.id === selectedGroupId.value)) {
       selectedGroupId.value = defaultGroupId.value;

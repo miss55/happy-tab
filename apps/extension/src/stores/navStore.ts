@@ -25,8 +25,10 @@ export const useNavStore = defineStore("nav", {
   }),
 
   actions: {
-    async loadShortcuts() {
-      this.isLoading = true;
+    async loadShortcuts({ background = false }: { background?: boolean } = {}) {
+      // Only explicit loads show the workspace banner. Mutation refreshes must
+      // stay silent even when the dock is empty, or the whole workspace shifts.
+      if (!background) this.isLoading = true;
       this.errorMessage = "";
 
       try {
@@ -34,7 +36,7 @@ export const useNavStore = defineStore("nav", {
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.loadNav");
       } finally {
-        this.isLoading = false;
+        if (!background) this.isLoading = false;
       }
     },
 
@@ -43,7 +45,7 @@ export const useNavStore = defineStore("nav", {
 
       try {
         const shortcut = await createNavShortcut(input);
-        await this.loadShortcuts();
+        await this.loadShortcuts({ background: true });
         return shortcut;
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.createNav");
@@ -56,7 +58,7 @@ export const useNavStore = defineStore("nav", {
 
       try {
         await updateNavShortcut(input);
-        await this.loadShortcuts();
+        await this.loadShortcuts({ background: true });
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.updateNav");
         throw error;
@@ -68,7 +70,7 @@ export const useNavStore = defineStore("nav", {
 
       try {
         await softDeleteNavShortcut(shortcutId);
-        await this.loadShortcuts();
+        await this.loadShortcuts({ background: true });
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.deleteNav");
         throw error;
@@ -79,7 +81,7 @@ export const useNavStore = defineStore("nav", {
       this.errorMessage = "";
       try {
         await restoreNavShortcut(shortcutId);
-        await this.loadShortcuts();
+        await this.loadShortcuts({ background: true });
       } catch (error) {
         this.errorMessage = messageKeyFromError(error, "error.updateNav");
         throw error;
@@ -101,10 +103,10 @@ export const useNavStore = defineStore("nav", {
 
       try {
         await reorderNavShortcuts(shortcutIds);
-        await this.loadShortcuts();
+        await this.loadShortcuts({ background: true });
       } catch (error) {
         // The database is the source of truth, so a failed write rolls the list back.
-        await this.loadShortcuts();
+        await this.loadShortcuts({ background: true });
         this.errorMessage = messageKeyFromError(error, "error.sortNav");
         throw error;
       }
