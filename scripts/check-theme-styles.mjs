@@ -123,6 +123,43 @@ try {
   }; })()`);
   if (!hover.hovered || hover.border === hoverTarget.border || hover.selected !== "false" || hover.outline !== "none") throw new Error(`Hover distinction: ${JSON.stringify(hover)}`);
   await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 0, y: 0 });
+  // Exercise the add-link popover against the real card board: glass headers
+  // create a stacking context, so checking the popover's own z-index is insufficient.
+  await evaluate(`(async () => {
+    document.querySelector('.theme-dialog .close-button').click();
+    const { useLinksStore } = await import('/src/stores/linksStore.ts');
+    const store = useLinksStore();
+    while (store.groups.length < 3) await store.addGroup('Popover overlap sample');
+  })()`);
+  for (let attempt = 0; attempt < 30 && await evaluate("Boolean(document.querySelector('.theme-dialog'))"); attempt++) await delay(50);
+  for (const width of [1280, 900, 640]) {
+    await send("Emulation.setDeviceMetricsOverride", { width, height: 960, deviceScaleFactor: 1, mobile: false });
+    for (const style of ["soft", "minimal", "glass", "fluent", "oled", "cyber"]) {
+      for (const blur of [true, false]) {
+        await evaluate(`(async () => {
+          const theme = await import('/src/services/theme.ts');
+          await theme.setThemeStyle('${style}'); await theme.updateThemeEffects({blur: ${blur}, animation: false});
+          const trigger = document.querySelector('.bookmark-create-trigger');
+          if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
+        })()`);
+        await delay(100);
+        const popover = await evaluate(`(() => {
+          const input = document.querySelector('#target-group');
+          const rect = input.getBoundingClientRect();
+          const x = rect.x + rect.width / 2, y = rect.y + rect.height / 2;
+          const hits = document.elementsFromPoint(x, y);
+          return {inputOnTop: hits[0] === input, overlapsCard: hits.some(el => el.matches('.link-group')),
+            actual: hits[0]?.className};
+        })()`);
+        if (!popover.inputOnTop || !popover.overlapsCard) throw new Error(`Add panel ${width}/${style}/blur=${blur}: ${JSON.stringify(popover)}`);
+        await evaluate("document.querySelector('.bookmark-create-trigger').click()");
+        await delay(160);
+        if (await evaluate("Boolean(document.querySelector('#bookmark-create-content'))")) throw new Error('Add panel did not collapse');
+      }
+    }
+  }
+  await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 960, deviceScaleFactor: 1, mobile: false });
+  await evaluate("document.querySelector('.theme-panel-button').click()");
   if (process.env.THEME_SCREENSHOT_DIR) {
     const directory = path.resolve(process.env.THEME_SCREENSHOT_DIR);
     await mkdir(directory, { recursive: true });

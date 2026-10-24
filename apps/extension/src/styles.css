@@ -1930,6 +1930,9 @@ label.theme-custom-fields {
 }
 
 .saved-links-column > .section-header {
+  /* Keep the add-link popover above cards when backdrop-filter isolates this header. */
+  position: relative;
+  z-index: 10;
   box-sizing: border-box;
   min-height: 56px;
   align-items: center;

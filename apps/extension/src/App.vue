@@ -34,6 +34,7 @@ import {
 } from "@/services/groupHeaderColors";
 import { captureFlip, playFlip, type FlipSnapshot } from "@/services/flip";
 import { bindLinkGroupMasonry, type LinkGroupMasonryBinding } from "@/services/linkGroupMasonry";
+import { bindDragAutoScroll } from "@/services/dragAutoScroll";
 import {
   captureBookmarkDragGeometry,
   clampIndex,
@@ -143,6 +144,8 @@ const groupColorIndexes = Array.from({ length: GROUP_HEADER_COLOR_COUNT }, (_, i
 const editingLinkId = ref("");
 const draggingGroupId = ref("");
 const linkGroupsElement = ref<HTMLElement | null>(null);
+const savedLinksColumn = ref<HTMLElement | null>(null);
+let unbindDragAutoScroll: (() => void) | null = null;
 let linkGroupMasonry: LinkGroupMasonryBinding | null = null;
 const draggingLink = ref<{ linkId: string; sourceGroupId: string } | null>(null);
 // Live drag previews. Groups and links are rendered from these so neighbours slide
@@ -944,7 +947,7 @@ const deleteLink = async (link: Link) => {
   }
 };
 
-const bookmarkAreaPoint = (event: DragEvent): Point | null => {
+const bookmarkAreaPoint = (event: Pick<DragEvent, "clientX" | "clientY">): Point | null => {
   const rect = linkGroupsElement.value?.getBoundingClientRect();
   return rect ? { x: event.clientX - rect.left, y: event.clientY - rect.top } : null;
 };
@@ -1043,7 +1046,7 @@ const endLinkDrag = () => {
 };
 
 /** Moves the dragged group to the slot whose masonry layout lands it nearest the carried card. */
-const updateGroupPreview = (event: DragEvent) => {
+const updateGroupPreview = (event: Pick<DragEvent, "clientX" | "clientY">) => {
   const draggedId = draggingGroupId.value;
   const geometry = bookmarkDragGeometry;
   const point = bookmarkAreaPoint(event);
@@ -1070,7 +1073,7 @@ const updateGroupPreview = (event: DragEvent) => {
 };
 
 /** Opens a gap in the group under the pointer, for a dragged link or a browser tab. */
-const updateLinkPreview = (event: DragEvent) => {
+const updateLinkPreview = (event: Pick<DragEvent, "clientX" | "clientY">) => {
   const geometry = bookmarkDragGeometry;
   const point = bookmarkAreaPoint(event);
 
@@ -1763,6 +1766,18 @@ watch(
 );
 
 onMounted(async () => {
+  if (savedLinksColumn.value) {
+    unbindDragAutoScroll = bindDragAutoScroll(
+      savedLinksColumn.value,
+      () => Boolean(draggingGroupId.value || draggingLink.value || draggingBrowserTab.value),
+      (point) => {
+        const target = document.elementFromPoint(point.clientX, point.clientY);
+        if (!target || !linkGroupsElement.value?.contains(target)) return;
+        if (draggingGroupId.value) updateGroupPreview(point);
+        else updateLinkPreview(point);
+      }
+    );
+  }
   unsubscribeBrowserTabUpdates = subscribeBrowserTabUpdates((updated) => {
     for (const group of windowGroups.value) {
       const tab = group.tabs.find((item) => item.id === updated.id);
@@ -1794,6 +1809,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  unbindDragAutoScroll?.();
   unsubscribeBrowserTabUpdates();
   linkGroupMasonry?.disconnect();
   document.removeEventListener("visibilitychange", refreshBrowserTabsWhenVisible);
@@ -2687,7 +2703,7 @@ onBeforeUnmount(() => {
         </section>
       </section>
 
-      <aside class="workspace-column saved-links-column">
+      <aside ref="savedLinksColumn" class="workspace-column saved-links-column">
         <QuickNavDock :incoming-tab="draggingBrowserTab" :incoming-link="incomingSavedLink" :available-tabs="windowGroups.flatMap(group => group.tabs)" :confirm-remove="askConfirm" />
 
         <header class="section-header">
