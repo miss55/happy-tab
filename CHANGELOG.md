@@ -3,6 +3,16 @@
 Notable changes to the Tabvia extension. The version matches `apps/extension`
 and `apps/extension/public/manifest.json`.
 
+## [0.2.4] - 2026-10-25
+
+### Added
+
+- Dragging a bookmark, group, or open tab near the top or bottom of the saved-links column scrolls that column. The drop preview follows rows that move under a stationary pointer.
+
+### Fixed
+
+- The add-link panel stays above bookmark cards. A glass header no longer covers the group picker.
+
 ## [0.2.3] - 2026-10-24
 
 ### Changed
