@@ -1,4 +1,5 @@
 import { tabviaDb } from "@/db/tabviaDb";
+import { DEFAULT_BOOKMARK_PAGE_ID } from "@/types/bookmarkPages";
 import {
   chooseGroupColorIndex,
   formatGroupColorIndex,
@@ -37,8 +38,8 @@ const normalizeUrl = (url: string) => {
   return `https://${trimmed}`;
 };
 
-const getNextGroupSortOrder = async () => {
-  const groups = (await tabviaDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined);
+const getNextGroupSortOrder = async (pageId: string) => {
+  const groups = (await tabviaDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined && (group.page_id || DEFAULT_BOOKMARK_PAGE_ID) === pageId);
   return groups.reduce((max, group) => Math.max(max, group.sort_order), -1) + 1;
 };
 
@@ -55,14 +56,18 @@ const getNextLinkSortOrder = async (groupId: string) => {
 export const listLinkGroupsWithLinks = async (): Promise<LinkGroupWithLinks[]> => {
   const groups = (await tabviaDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined);
   const links = (await tabviaDb.links.toArray()).filter((link) => link.deleted_at === undefined);
+  const linksByGroup = new Map<string, SavedLink[]>();
+  for (const link of links) {
+    const groupLinks = linksByGroup.get(link.group_id) || [];
+    groupLinks.push(link);
+    linksByGroup.set(link.group_id, groupLinks);
+  }
 
   return groups
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((group) => ({
       ...group,
-      links: links
-        .filter((link) => link.group_id === group.id)
-        .sort((a, b) => a.sort_order - b.sort_order)
+      links: (linksByGroup.get(group.id) || []).sort((a, b) => a.sort_order - b.sort_order)
     }));
 };
 
@@ -76,61 +81,70 @@ export const getLinkGroup = async (groupId: string): Promise<LinkGroup | undefin
   return group?.deleted_at ? undefined : group;
 };
 
-export const ensureDefaultLinkGroup = async (): Promise<LinkGroup> => {
-  const groups = (await tabviaDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined);
-  const firstGroup = groups.sort((a, b) => a.sort_order - b.sort_order)[0];
+export const ensureDefaultLinkGroup = async (pageId = DEFAULT_BOOKMARK_PAGE_ID): Promise<LinkGroup> =>
+  tabviaDb.transaction("rw", tabviaDb.bookmark_pages, tabviaDb.link_groups, async () => {
+    const page = await tabviaDb.bookmark_pages.get(pageId);
+    if (!page || page.deleted_at) throw new Error("pages.unavailable");
+    const groups = (await tabviaDb.link_groups.toArray()).filter((group) => group.deleted_at === undefined && (group.page_id || DEFAULT_BOOKMARK_PAGE_ID) === pageId);
+    const firstGroup = groups.sort((a, b) => a.sort_order - b.sort_order)[0];
 
-  if (firstGroup) {
-    return firstGroup;
-  }
+    if (firstGroup) {
+      return firstGroup;
+    }
 
-  const timestamp = nowIso();
-  const group: LinkGroup = {
-    id: createId(),
-    name: DEFAULT_GROUP_NAME,
-    sort_order: 0,
-    created_at: timestamp,
-    updated_at: timestamp
-  };
+    const timestamp = nowIso();
+    const group: LinkGroup = {
+      id: createId(),
+      name: DEFAULT_GROUP_NAME,
+      page_id: pageId,
+      sort_order: 0,
+      created_at: timestamp,
+      updated_at: timestamp
+    };
 
-  await tabviaDb.link_groups.add(group);
-  return group;
-};
+    await tabviaDb.link_groups.add(group);
+    return group;
+  });
 
-export const createLinkGroup = async (input: CreateLinkGroupInput): Promise<LinkGroup> => {
-  const name = input.name.trim();
+export const createLinkGroup = async (input: CreateLinkGroupInput): Promise<LinkGroup> =>
+  tabviaDb.transaction("rw", tabviaDb.bookmark_pages, tabviaDb.link_groups, async () => {
+    const name = input.name.trim();
 
-  if (!name) {
-    throw new Error("Group name is required.");
-  }
+    if (!name) {
+      throw new Error("Group name is required.");
+    }
 
-  const timestamp = nowIso();
-  const existingGroups = (await tabviaDb.link_groups.toArray())
-    .filter((group) => group.deleted_at === undefined)
-    .sort((left, right) => left.sort_order - right.sort_order || left.created_at.localeCompare(right.created_at));
-  const requestedColor = parseGroupColorIndex(input.color);
-  const colorIndex =
-    requestedColor ??
-    chooseGroupColorIndex(
-      existingGroups.flatMap((group) => {
-        const index = parseGroupColorIndex(group.color);
-        return index === undefined ? [] : [index];
-      })
-    );
-  const group: LinkGroup = {
-    id: createId(),
-    name,
-    description: input.description,
-    icon: input.icon,
-    color: formatGroupColorIndex(colorIndex),
-    sort_order: await getNextGroupSortOrder(),
-    created_at: timestamp,
-    updated_at: timestamp
-  };
+    const timestamp = nowIso();
+    const pageId = input.page_id || DEFAULT_BOOKMARK_PAGE_ID;
+    const page = await tabviaDb.bookmark_pages.get(pageId);
+    if (!page || page.deleted_at) throw new Error("pages.unavailable");
+    const existingGroups = (await tabviaDb.link_groups.toArray())
+      .filter((group) => group.deleted_at === undefined)
+      .sort((left, right) => left.sort_order - right.sort_order || left.created_at.localeCompare(right.created_at));
+    const requestedColor = parseGroupColorIndex(input.color);
+    const colorIndex =
+      requestedColor ??
+      chooseGroupColorIndex(
+        existingGroups.flatMap((group) => {
+          const index = parseGroupColorIndex(group.color);
+          return index === undefined ? [] : [index];
+        })
+      );
+    const group: LinkGroup = {
+      id: createId(),
+      name,
+      page_id: pageId,
+      description: input.description,
+      icon: input.icon,
+      color: formatGroupColorIndex(colorIndex),
+      sort_order: await getNextGroupSortOrder(pageId),
+      created_at: timestamp,
+      updated_at: timestamp
+    };
 
-  await tabviaDb.link_groups.add(group);
-  return group;
-};
+    await tabviaDb.link_groups.add(group);
+    return group;
+  });
 
 export const listLinks = async (): Promise<SavedLink[]> => {
   const links = (await tabviaDb.links.toArray()).filter((link) => link.deleted_at === undefined);
@@ -142,37 +156,41 @@ export const getLink = async (linkId: string): Promise<SavedLink | undefined> =>
   return link?.deleted_at ? undefined : link;
 };
 
-export const createLink = async (input: CreateLinkInput): Promise<Link> => {
-  const title = input.title.trim();
-  const url = normalizeUrl(input.url);
+export const createLink = async (input: CreateLinkInput): Promise<Link> =>
+  tabviaDb.transaction("rw", tabviaDb.link_groups, tabviaDb.links, async () => {
+    const title = input.title.trim();
+    const url = normalizeUrl(input.url);
 
-  if (!input.group_id) {
-    throw new Error("Group is required.");
-  }
+    if (!input.group_id) {
+      throw new Error("Group is required.");
+    }
 
-  if (!title) {
-    throw new Error("Title is required.");
-  }
+    if (!title) {
+      throw new Error("Title is required.");
+    }
 
-  const timestamp = nowIso();
-  const link: Link = {
-    id: createId(),
-    group_id: input.group_id,
-    title,
-    url,
-    description: input.description,
-    favicon_url: input.favicon_url,
-    tags: input.tags,
-    sort_order: await getNextLinkSortOrder(input.group_id),
-    open_count: 0,
-    source: input.source || "manual",
-    created_at: timestamp,
-    updated_at: timestamp
-  };
+    const target = await tabviaDb.link_groups.get(input.group_id);
+    if (!target || target.deleted_at) throw new Error("pages.unavailable");
 
-  await tabviaDb.links.add(link);
-  return link;
-};
+    const timestamp = nowIso();
+    const link: Link = {
+      id: createId(),
+      group_id: input.group_id,
+      title,
+      url,
+      description: input.description,
+      favicon_url: input.favicon_url,
+      tags: input.tags,
+      sort_order: await getNextLinkSortOrder(input.group_id),
+      open_count: 0,
+      source: input.source || "manual",
+      created_at: timestamp,
+      updated_at: timestamp
+    };
+
+    await tabviaDb.links.add(link);
+    return link;
+  });
 
 export const updateLinkGroup = async (input: UpdateLinkGroupInput): Promise<void> => {
   const name = input.name.trim();
@@ -248,25 +266,32 @@ export const softDeleteLinkGroup = async (groupId: string): Promise<void> => {
   });
 };
 
-export const updateLink = async (input: UpdateLinkInput): Promise<void> => {
-  const title = input.title.trim();
-  const url = normalizeUrl(input.url);
+export const updateLink = async (input: UpdateLinkInput): Promise<void> =>
+  tabviaDb.transaction("rw", tabviaDb.link_groups, tabviaDb.links, async () => {
+    const title = input.title.trim();
+    const url = normalizeUrl(input.url);
 
-  if (!input.group_id) {
-    throw new Error("Group is required.");
-  }
+    if (!input.group_id) {
+      throw new Error("Group is required.");
+    }
 
-  if (!title) {
-    throw new Error("Title is required.");
-  }
+    if (!title) {
+      throw new Error("Title is required.");
+    }
 
-  await tabviaDb.links.update(input.id, {
-    group_id: input.group_id,
-    title,
-    url,
-    updated_at: nowIso()
+    const target = await tabviaDb.link_groups.get(input.group_id);
+    if (!target || target.deleted_at) throw new Error("pages.unavailable");
+    const current = await tabviaDb.links.get(input.id);
+    if (!current || current.deleted_at) throw new Error("pages.unavailable");
+    const sort_order = current?.group_id === input.group_id ? current.sort_order : await getNextLinkSortOrder(input.group_id);
+    await tabviaDb.links.update(input.id, {
+      group_id: input.group_id,
+      title,
+      url,
+      sort_order,
+      updated_at: nowIso()
+    });
   });
-};
 
 export const softDeleteLink = async (linkId: string): Promise<void> => {
   const timestamp = nowIso();
@@ -281,6 +306,11 @@ export const reorderLinkGroups = async (input: ReorderLinkGroupsInput): Promise<
   const timestamp = nowIso();
 
   await tabviaDb.transaction("rw", tabviaDb.link_groups, async () => {
+    const groups = await tabviaDb.link_groups.bulkGet(input.group_ids);
+    if (new Set(input.group_ids).size !== input.group_ids.length || groups.some(group => !group || group.deleted_at) ||
+      new Set(groups.map(group => group?.page_id || DEFAULT_BOOKMARK_PAGE_ID)).size > 1) {
+      throw new Error("pages.unavailable");
+    }
     await Promise.all(
       input.group_ids.map((groupId, index) =>
         tabviaDb.link_groups.update(groupId, {

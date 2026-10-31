@@ -1,0 +1,49 @@
+{
+  "locales": [
+    {
+      "locale": "zh-TW",
+      "images": 5,
+      "width": 1280,
+      "height": 800,
+      "layout": "passed"
+    },
+    {
+      "locale": "ja",
+      "images": 5,
+      "width": 1280,
+      "height": 800,
+      "layout": "passed"
+    },
+    {
+      "locale": "ko",
+      "images": 5,
+      "width": 1280,
+      "height": 800,
+      "layout": "passed"
+    },
+    {
+      "locale": "es",
+      "images": 5,
+      "width": 1280,
+      "height": 800,
+      "layout": "passed"
+    },
+    {
+      "locale": "fr",
+      "images": 5,
+      "width": 1280,
+      "height": 800,
+      "layout": "passed"
+    },
+    {
+      "locale": "de",
+      "images": 5,
+      "width": 1280,
+      "height": 800,
+      "layout": "passed"
+    }
+  ],
+  "totalImages": 30,
+  "preservedExistingPNGs": 41,
+  "status": "passed"
+}

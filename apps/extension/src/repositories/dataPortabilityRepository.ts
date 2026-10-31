@@ -1,4 +1,6 @@
 import { tabviaDb } from "@/db/tabviaDb";
+import { ensureBookmarkPages } from "@/repositories/bookmarkPagesRepository";
+import { createDefaultBookmarkPage, DEFAULT_BOOKMARK_PAGE_ID, type BookmarkPage } from "@/types/bookmarkPages";
 import type { LinkGroup, SavedLink } from "@/types/links";
 import type { NavShortcut } from "@/types/navShortcuts";
 import type { TodoItem } from "@/types/todos";
@@ -9,7 +11,7 @@ import {
   TABVIA_BACKUP_VERSION,
   type DataImportMode,
   type DataImportSummary,
-  type TabviaBackupV1
+  type TabviaBackupV2
 } from "@/types/dataPortability";
 
 type UnknownRecord = Record<string, unknown>;
@@ -99,9 +101,18 @@ const isSafeWebUrl = (value: string) => {
 const parseLinkGroup = (record: UnknownRecord, path: string): LinkGroup => ({
   id: readString(record, "id", path),
   name: readString(record, "name", path),
+  page_id: readOptionalString(record, "page_id", path),
   description: readOptionalString(record, "description", path),
   icon: readOptionalString(record, "icon", path),
   color: readOptionalString(record, "color", path),
+  sort_order: readNonNegativeInteger(record, "sort_order", path),
+  created_at: readDateString(record, "created_at", path),
+  updated_at: readDateString(record, "updated_at", path)
+});
+
+const parseBookmarkPage = (record: UnknownRecord, path: string): BookmarkPage => ({
+  id: readString(record, "id", path),
+  name: readString(record, "name", path, true),
   sort_order: readNonNegativeInteger(record, "sort_order", path),
   created_at: readDateString(record, "created_at", path),
   updated_at: readDateString(record, "updated_at", path)
@@ -198,12 +209,12 @@ const ensureUniqueIds = (items: Array<{ id: string }>, path: string) => {
   }
 };
 
-export const parseTabviaBackup = (input: unknown): TabviaBackupV1 => {
+export const parseTabviaBackup = (input: unknown): TabviaBackupV2 => {
   if (!isRecord(input) || input.format !== TABVIA_BACKUP_FORMAT) {
     throw new DataBackupError("invalid_format");
   }
 
-  if (input.version !== TABVIA_BACKUP_VERSION) {
+  if (input.version !== 1 && input.version !== TABVIA_BACKUP_VERSION) {
     throw new DataBackupError("unsupported_version");
   }
 
@@ -213,7 +224,15 @@ export const parseTabviaBackup = (input: unknown): TabviaBackupV1 => {
     return invalidData("data");
   }
 
-  const linkGroups = readRecordArray(input.data, "link_groups", parseLinkGroup);
+  const pages = input.version === 1 ? [createDefaultBookmarkPage()] : readRecordArray(input.data, "bookmark_pages", parseBookmarkPage);
+  ensureUniqueIds(pages, "data.bookmark_pages");
+  const pageIds = new Set(pages.map(page => page.id));
+  const linkGroups = readRecordArray(input.data, "link_groups", parseLinkGroup).map(group => {
+    const page_id = input.version === 1 ? DEFAULT_BOOKMARK_PAGE_ID : group.page_id;
+    if (!page_id || !pageIds.has(page_id)) return invalidData(`data.link_groups.${group.id}.page_id`);
+    return { ...group, page_id };
+  });
+  if (!pageIds.has(DEFAULT_BOOKMARK_PAGE_ID)) pages.push(createDefaultBookmarkPage());
   const links = readRecordArray(input.data, "links", parseSavedLink);
   const todos = readRecordArray(input.data, "todos", parseTodo);
   const usageStats = readRecordArray(input.data, "usage_stats", parseUsageStat);
@@ -249,6 +268,7 @@ export const parseTabviaBackup = (input: unknown): TabviaBackupV1 => {
     exported_at: exportedAt,
     data: {
       link_groups: linkGroups,
+      bookmark_pages: pages,
       links,
       todos,
       usage_stats: usageStats,
@@ -257,7 +277,7 @@ export const parseTabviaBackup = (input: unknown): TabviaBackupV1 => {
   };
 };
 
-export const parseTabviaBackupJson = (json: string): TabviaBackupV1 => {
+export const parseTabviaBackupJson = (json: string): TabviaBackupV2 => {
   try {
     return parseTabviaBackup(JSON.parse(json) as unknown);
   } catch (error) {
@@ -274,35 +294,42 @@ const activeOnly = <T extends { deleted_at?: string }>(items: T[]) =>
     .filter((item) => item.deleted_at === undefined)
     .map(({ deleted_at: _deletedAt, ...item }) => item as T);
 
-export const createTabviaBackup = async (): Promise<TabviaBackupV1> => {
-  const linkGroups = activeOnly(await tabviaDb.link_groups.toArray()).sort(
-    (a, b) => a.sort_order - b.sort_order
-  );
-  const groupIds = new Set(linkGroups.map((group) => group.id));
-  const links = activeOnly(await tabviaDb.links.toArray())
-    .filter((link) => groupIds.has(link.group_id))
-    .sort((a, b) => a.group_id.localeCompare(b.group_id) || a.sort_order - b.sort_order);
-  const linkIds = new Set(links.map((link) => link.id));
-  const todos = activeOnly(await tabviaDb.todos.toArray()).sort((a, b) => a.sort_order - b.sort_order);
-  const usageStats = activeOnly(await tabviaDb.usage_stats.toArray()).filter((stat) =>
-    linkIds.has(stat.target_id)
-  );
-  const navShortcuts = activeOnly(await tabviaDb.nav_shortcuts.toArray()).sort(
-    (left, right) => left.sort_order - right.sort_order
-  );
+export const createTabviaBackup = async (): Promise<TabviaBackupV2> => {
+  await ensureBookmarkPages();
+  return tabviaDb.transaction("r",
+    [tabviaDb.bookmark_pages, tabviaDb.link_groups, tabviaDb.links, tabviaDb.todos, tabviaDb.usage_stats, tabviaDb.nav_shortcuts],
+    async () => {
+      const pages = activeOnly(await tabviaDb.bookmark_pages.toArray()).sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id));
+      const linkGroups = activeOnly(await tabviaDb.link_groups.toArray()).sort(
+        (a, b) => a.sort_order - b.sort_order
+      );
+      const groupIds = new Set(linkGroups.map((group) => group.id));
+      const links = activeOnly(await tabviaDb.links.toArray())
+        .filter((link) => groupIds.has(link.group_id))
+        .sort((a, b) => a.group_id.localeCompare(b.group_id) || a.sort_order - b.sort_order);
+      const linkIds = new Set(links.map((link) => link.id));
+      const todos = activeOnly(await tabviaDb.todos.toArray()).sort((a, b) => a.sort_order - b.sort_order);
+      const usageStats = activeOnly(await tabviaDb.usage_stats.toArray()).filter((stat) =>
+        linkIds.has(stat.target_id)
+      );
+      const navShortcuts = activeOnly(await tabviaDb.nav_shortcuts.toArray()).sort(
+        (left, right) => left.sort_order - right.sort_order
+      );
 
-  return {
-    format: TABVIA_BACKUP_FORMAT,
-    version: TABVIA_BACKUP_VERSION,
-    exported_at: new Date().toISOString(),
-    data: {
-      link_groups: linkGroups,
-      links,
-      todos,
-      usage_stats: usageStats,
-      nav_shortcuts: navShortcuts
-    }
-  };
+      return {
+        format: TABVIA_BACKUP_FORMAT,
+        version: TABVIA_BACKUP_VERSION,
+        exported_at: new Date().toISOString(),
+        data: {
+          link_groups: linkGroups,
+          bookmark_pages: pages,
+          links,
+          todos,
+          usage_stats: usageStats,
+          nav_shortcuts: navShortcuts
+        }
+      };
+  });
 };
 
 const normalizeImportedSortOrders = async () => {
@@ -310,7 +337,16 @@ const normalizeImportedSortOrders = async () => {
     .filter((group) => group.deleted_at === undefined)
     .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
 
-  await tabviaDb.link_groups.bulkPut(groups.map((group, index) => ({ ...group, sort_order: index })));
+  const pageRanks = new Map<string, number>();
+  await tabviaDb.link_groups.bulkPut(groups.map(group => {
+    const pageId = group.page_id || DEFAULT_BOOKMARK_PAGE_ID;
+    const rank = pageRanks.get(pageId) || 0;
+    pageRanks.set(pageId, rank + 1);
+    return { ...group, page_id: pageId, sort_order: rank };
+  }));
+  const pages = (await tabviaDb.bookmark_pages.toArray()).filter(page => !page.deleted_at)
+    .sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id));
+  await tabviaDb.bookmark_pages.bulkPut(pages.map((page, sort_order) => ({ ...page, sort_order })));
 
   for (const group of groups) {
     const links = (await tabviaDb.links.where("group_id").equals(group.id).toArray())
@@ -357,6 +393,7 @@ export const importTabviaBackup = async (
   await tabviaDb.transaction(
     "rw",
     [
+      tabviaDb.bookmark_pages,
       tabviaDb.link_groups,
       tabviaDb.links,
       tabviaDb.todos,
@@ -367,6 +404,7 @@ export const importTabviaBackup = async (
     async () => {
       if (mode === "replace") {
         await Promise.all([
+          tabviaDb.bookmark_pages.clear(),
           tabviaDb.link_groups.clear(),
           tabviaDb.links.clear(),
           tabviaDb.todos.clear(),
@@ -376,6 +414,7 @@ export const importTabviaBackup = async (
         ]);
       } else {
         const importedEntityKeys = new Set([
+          ...backup.data.bookmark_pages.map(page => `bookmark_page:${page.id}`),
           ...backup.data.link_groups.map((group) => `link_group:${group.id}`),
           ...backup.data.links.map((link) => `link:${link.id}`),
           ...backup.data.todos.map((todo) => `todo:${todo.id}`),
@@ -391,6 +430,12 @@ export const importTabviaBackup = async (
         }
       }
 
+      // Legacy imports must not reset a user's renamed default page.
+      for (const page of backup.data.bookmark_pages) {
+        const existing = await tabviaDb.bookmark_pages.get(page.id);
+        if (page.id === DEFAULT_BOOKMARK_PAGE_ID && !page.name && existing && !existing.deleted_at) continue;
+        await tabviaDb.bookmark_pages.put(page);
+      }
       if (backup.data.link_groups.length > 0) {
         await tabviaDb.link_groups.bulkPut(backup.data.link_groups);
       }

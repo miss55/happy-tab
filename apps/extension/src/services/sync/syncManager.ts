@@ -4,6 +4,8 @@ import type { LinkGroup, SavedLink } from "@/types/links";
 import type { NavShortcut } from "@/types/navShortcuts";
 import type { TodoItem } from "@/types/todos";
 import type { UsageStat } from "@/types/usageStats";
+import type { BookmarkPage } from "@/types/bookmarkPages";
+import { assertSupportedSnapshot, SyncSnapshotVersionError } from "./snapshotCodec";
 
 import { isCloudflareKvConfigured } from "./cloudflareSetup";
 import { SyncDecryptError } from "./encryption";
@@ -30,6 +32,7 @@ const ensureProviderAccess = async (config: SyncProviderConfig): Promise<void> =
 };
 
 export const messageKeyFromSyncError = (error: unknown, fallback: MessageKey): MessageKey => {
+  if (error instanceof SyncSnapshotVersionError) return "pages.syncIncompatible";
   if (error instanceof SyncDecryptError) {
     return "cloud.decryptFailed";
   }
@@ -42,29 +45,35 @@ export const messageKeyFromSyncError = (error: unknown, fallback: MessageKey): M
   return fallback;
 };
 
-export const buildLocalSnapshot = async (): Promise<SyncSnapshot> => {
-  const [link_groups, links, todos, usage_stats, nav_shortcuts] = await Promise.all([
-    tabviaDb.link_groups.toArray(),
-    tabviaDb.links.toArray(),
-    tabviaDb.todos.toArray(),
-    tabviaDb.usage_stats.toArray(),
-    tabviaDb.nav_shortcuts.toArray()
-  ]);
+export const buildLocalSnapshot = async (): Promise<SyncSnapshot> => tabviaDb.transaction(
+  "r",
+  [tabviaDb.bookmark_pages, tabviaDb.link_groups, tabviaDb.links, tabviaDb.todos, tabviaDb.usage_stats, tabviaDb.nav_shortcuts],
+  async () => {
+    const [link_groups, links, todos, usage_stats, nav_shortcuts, bookmark_pages] = await Promise.all([
+      tabviaDb.link_groups.toArray(),
+      tabviaDb.links.toArray(),
+      tabviaDb.todos.toArray(),
+      tabviaDb.usage_stats.toArray(),
+      tabviaDb.nav_shortcuts.toArray(),
+      tabviaDb.bookmark_pages.toArray()
+    ]);
 
-  return {
-    version: 1,
-    updated_at: new Date().toISOString(),
-    data: {
-      link_groups,
-      links,
-      todos,
-      usage_stats,
-      nav_shortcuts
-    }
-  };
-};
+    return {
+      version: 2,
+      updated_at: new Date().toISOString(),
+      data: {
+        link_groups,
+        bookmark_pages,
+        links,
+        todos,
+        usage_stats,
+        nav_shortcuts
+      }
+    };
+});
 
 export const applyMergedSnapshotToDb = async (merged: {
+  bookmark_pages?: BookmarkPage[];
   link_groups: LinkGroup[];
   links: SavedLink[];
   todos: TodoItem[];
@@ -73,8 +82,9 @@ export const applyMergedSnapshotToDb = async (merged: {
 }): Promise<void> => {
   await tabviaDb.transaction(
     "rw",
-    [tabviaDb.link_groups, tabviaDb.links, tabviaDb.todos, tabviaDb.usage_stats, tabviaDb.nav_shortcuts],
+    [tabviaDb.bookmark_pages, tabviaDb.link_groups, tabviaDb.links, tabviaDb.todos, tabviaDb.usage_stats, tabviaDb.nav_shortcuts],
     async () => {
+      if (merged.bookmark_pages?.length) await tabviaDb.bookmark_pages.bulkPut(merged.bookmark_pages);
       if (merged.link_groups.length > 0) {
         await tabviaDb.link_groups.bulkPut(merged.link_groups);
       }
@@ -110,6 +120,7 @@ export const performSync = async (config: SyncProviderConfig): Promise<SyncResul
     const provider = getStorageProvider(config.provider);
     const localSnapshot = await buildLocalSnapshot();
     const remoteSnapshot = await provider.pullSnapshot(config);
+    if (remoteSnapshot) assertSupportedSnapshot(remoteSnapshot);
 
     if (!remoteSnapshot) {
       const pushed = await provider.pushSnapshot(config, localSnapshot);
@@ -126,6 +137,7 @@ export const performSync = async (config: SyncProviderConfig): Promise<SyncResul
     const mergedData = mergeSnapshots(
       {
         link_groups: localSnapshot.data.link_groups,
+        bookmark_pages: localSnapshot.data.bookmark_pages,
         links: localSnapshot.data.links,
         todos: localSnapshot.data.todos,
         nav_shortcuts: localSnapshot.data.nav_shortcuts
@@ -136,7 +148,7 @@ export const performSync = async (config: SyncProviderConfig): Promise<SyncResul
     await applyMergedSnapshotToDb(mergedData);
 
     const newSnapshot: SyncSnapshot = {
-      version: 1,
+      version: 2,
       updated_at: new Date().toISOString(),
       data: {
         ...mergedData,

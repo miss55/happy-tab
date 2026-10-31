@@ -1,8 +1,12 @@
 # Quick navigation
 
-The dock opens shortcuts normally. Manage switches the same cards into an
-editing mode: drag cards to reorder, click a card to edit, or use its remove
-button. Done or Escape leaves management mode. Alt + Left/Right retains keyboard
+The dock opens shortcuts on click and lets users drag cards to reorder directly.
+While a shortcut is being dragged, the other cards gently wiggle with staggered
+timing, like iPhone home-screen icons, while sliding aside to preview its position.
+Dropping or cancelling the drag stops the wiggle; reduced-motion preferences
+disable it. Manage switches the same cards into an editing mode: drag cards to
+reorder, click a card to edit, or use its remove button. Done or Escape leaves
+management mode. Alt + Left/Right retains keyboard
 reordering. Moving or removing a shortcut saves immediately to local IndexedDB.
 Management instructions replace the count in the existing single-line header,
 so entering management does not insert a row or change the dock height.

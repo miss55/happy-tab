@@ -1,0 +1,67 @@
+{
+  "locale": "es",
+  "dimensions": {
+    "width": 1280,
+    "height": 800
+  },
+  "screenshots": [
+    "01-workspace.png",
+    "02-drag-to-save.png",
+    "03-themes.png",
+    "04-local-and-backup.png",
+    "05-optional-sync.png"
+  ],
+  "source": "Real current Vue UI, isolated temporary browser, fictional demonstration records; editorial titles and drag arrow added outside the app.",
+  "sync": "Disabled throughout capture. No credentials or provider requests.",
+  "originals": {},
+  "layoutChecks": [
+    {
+      "file": "01-workspace.png",
+      "fitted": [],
+      "overflow": [],
+      "overlaps": []
+    },
+    {
+      "file": "02-drag-to-save.png",
+      "fitted": [
+        {
+          "text": "Arrastra una pestaña.Guarda el enlace.",
+          "from": 58,
+          "to": 43.5
+        }
+      ],
+      "overflow": [],
+      "overlaps": []
+    },
+    {
+      "file": "03-themes.png",
+      "fitted": [],
+      "overflow": [],
+      "overlaps": []
+    },
+    {
+      "file": "04-local-and-backup.png",
+      "fitted": [
+        {
+          "text": "Tus marcadores.Tus datos.",
+          "from": 59,
+          "to": 56
+        }
+      ],
+      "overflow": [],
+      "overlaps": []
+    },
+    {
+      "file": "05-optional-sync.png",
+      "fitted": [
+        {
+          "text": "Sincronizaa tu manera.",
+          "from": 62,
+          "to": 60
+        }
+      ],
+      "overflow": [],
+      "overlaps": []
+    }
+  ]
+}

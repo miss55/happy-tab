@@ -1,4 +1,5 @@
 import Dexie, { type Table } from "dexie";
+import { createDefaultBookmarkPage, DEFAULT_BOOKMARK_PAGE_ID, type BookmarkPage } from "@/types/bookmarkPages";
 import type { LinkGroup, SavedLink } from "@/types/links";
 import type { NavShortcut } from "@/types/navShortcuts";
 import type { SyncQueueItem } from "@/types/syncQueue";
@@ -7,6 +8,7 @@ import type { TodoItem } from "@/types/todos";
 import type { UsageStat } from "@/types/usageStats";
 
 class TabviaDb extends Dexie {
+  bookmark_pages!: Table<BookmarkPage, string>;
   link_groups!: Table<LinkGroup, string>;
   links!: Table<SavedLink, string>;
   todos!: Table<TodoItem, string>;
@@ -57,6 +59,15 @@ class TabviaDb extends Dexie {
 
     this.version(6).stores({
       nav_shortcuts: "&id, sort_order, deleted_at, updated_at"
+    });
+
+    this.version(7).stores({
+      bookmark_pages: "&id, sort_order, deleted_at, updated_at",
+      link_groups: "&id, page_id, [page_id+sort_order], sort_order, deleted_at, updated_at"
+    }).upgrade(async (transaction) => {
+      await transaction.table("bookmark_pages").put(createDefaultBookmarkPage());
+      // Keep all IDs, timestamps, ordering and statistics intact.
+      await transaction.table("link_groups").toCollection().modify({ page_id: DEFAULT_BOOKMARK_PAGE_ID });
     });
   }
 }

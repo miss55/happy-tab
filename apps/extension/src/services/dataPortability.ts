@@ -3,12 +3,12 @@ import {
   importTabviaBackup,
   parseTabviaBackupJson
 } from "@/repositories/dataPortabilityRepository";
-import type { DataImportMode, TabviaBackupV1 } from "@/types/dataPortability";
+import type { DataImportMode, TabviaBackup } from "@/types/dataPortability";
 import { DataBackupError } from "@/types/dataPortability";
 
 export const MAX_BACKUP_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-export const serializeTabviaBackup = (backup: TabviaBackupV1) => JSON.stringify(backup, null, 2);
+export const serializeTabviaBackup = (backup: TabviaBackup) => JSON.stringify(backup, null, 2);
 
 export const createBackupFileName = (exportedAt: string) => {
   const date = exportedAt.slice(0, 10) || new Date().toISOString().slice(0, 10);
@@ -43,5 +43,5 @@ export const readTabviaBackupFile = async (file: File) => {
   return parseTabviaBackupJson(await file.text());
 };
 
-export const restoreTabviaBackup = (backup: TabviaBackupV1, mode: DataImportMode) =>
+export const restoreTabviaBackup = (backup: TabviaBackup, mode: DataImportMode) =>
   importTabviaBackup(backup, mode);

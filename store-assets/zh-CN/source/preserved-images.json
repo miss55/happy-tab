@@ -1,0 +1,114 @@
+[
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\i18n.png",
+    "sha256": "4837fba5173d568f3a52481e851b21d60bc95810ff23d8216c3dec678142c620"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\large-promo-1400x560.png",
+    "sha256": "2dff33a909cc2a5d420403db585218039e5d89446e980bef26d2da51637d7ce3"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\local-storage.png",
+    "sha256": "f9b5fef02c4c1655994df4eef1450a2a6f5058e486bad5974adf48ceb963fc5b"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\logo-300.png",
+    "sha256": "228c803cf13d0cc9c6e8ceb266b6295a596c3a3c4d7ad85157a8ec7572be7852"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\small-promo-440x280.png",
+    "sha256": "394ab4e32b443692fc1a332fe45c62e37c06ec53fd78f228c18b502d42d6b8ba"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\sync.png",
+    "sha256": "86d229132b3d3ac0ef98b5caa5020126d9c945ea61e09d2dbcffea0593d8616e"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\theme.png",
+    "sha256": "be362497f7b21f98ab994f80be629c32045ef0fdaef396ee2ec4a0a1e5eed918"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\01-workspace.png",
+    "sha256": "3938a8672c2309de711dbaedcbded6a81de178632c3695f8f3d260d455d84269"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\02-drag-to-save.png",
+    "sha256": "2e7ab3fbbb5c4b9d743755f78143bb2df9dad5852805528b089d97909d09300c"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\03-themes.png",
+    "sha256": "ea89fc7c54f583f7fb446dc355c5d0e90eb7990378df55ccc86c266637724776"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\04-local-and-backup.png",
+    "sha256": "972ac5ee0f1706b7a4539acea47f40b1875ec1b944f42ba835bdf3fb629852f5"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\05-optional-sync.png",
+    "sha256": "200594491d7cac6c79f47f4c5e53dc4ef4c2a36fd1b0a27e2afb87889de7844c"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\i18n.png",
+    "sha256": "4fc4647ed82036c0084c77567902129f9347b3a05629523c7521d5cbda3c69c2"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\local-storage.png",
+    "sha256": "7877be70db3df1751739fbfdc06a25231018ca522924b6b10f6dd7091c53dbc4"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\sync.png",
+    "sha256": "b85456850d03d005ae7ee4a3eea993d3659d31c49815f3c3d430c32740d1b5b9"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\theme.png",
+    "sha256": "19d03725c9fcdf765f80d752ad22b5b057f94a4ad495ea9b9722c6d27c2d0263"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\source\\contact-sheet.png",
+    "sha256": "f9aee320656593c1273742a526ee7e739e8588a8d5c5c30e2d9a70aa50fc6f90"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\source\\captures\\backup.png",
+    "sha256": "6a37f8647e794ba57413879dcac46ce6533d92ddb108ca96db01fa34424e8876"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\source\\captures\\drag.png",
+    "sha256": "5e1df587ea9a97c1bd288b5847d3fedf9805b6f97a3cdff1a941ecf99cf02313"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\source\\captures\\sync-choice.png",
+    "sha256": "fe44308ecc15a83cd4c9dd933b3154a2600291ef57f256eea14df103ad8336df"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\source\\captures\\theme-dark.png",
+    "sha256": "ddefd78d803547b1c7a06fe97d3b3aecdba847c44ab33e0829cc32a085791825"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\source\\captures\\theme-glass.png",
+    "sha256": "769d262bbfce2b72d9f01585ac8ea3a1f4373c49de49fc12cd38ac91f026fd7c"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\source\\captures\\theme-light.png",
+    "sha256": "1123436d218c5c7ba6cc05a703164fc3968ed0197c8a2376686aaa1d634334f1"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\en\\source\\captures\\workspace.png",
+    "sha256": "0439b4151b8bdebebed060ad832e5cc40ac226669c999021a369064764bc0cdf"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\zh-CN\\i18n.png",
+    "sha256": "4837fba5173d568f3a52481e851b21d60bc95810ff23d8216c3dec678142c620"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\zh-CN\\local-storage.png",
+    "sha256": "f9b5fef02c4c1655994df4eef1450a2a6f5058e486bad5974adf48ceb963fc5b"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\zh-CN\\sync.png",
+    "sha256": "86d229132b3d3ac0ef98b5caa5020126d9c945ea61e09d2dbcffea0593d8616e"
+  },
+  {
+    "path": "F:\\come-on\\happy-tab\\store-assets\\zh-CN\\theme.png",
+    "sha256": "be362497f7b21f98ab994f80be629c32045ef0fdaef396ee2ec4a0a1e5eed918"
+  }
+]

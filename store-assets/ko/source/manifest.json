@@ -1,0 +1,55 @@
+{
+  "locale": "ko",
+  "dimensions": {
+    "width": 1280,
+    "height": 800
+  },
+  "screenshots": [
+    "01-workspace.png",
+    "02-drag-to-save.png",
+    "03-themes.png",
+    "04-local-and-backup.png",
+    "05-optional-sync.png"
+  ],
+  "source": "Real current Vue UI, isolated temporary browser, fictional demonstration records; editorial titles and drag arrow added outside the app.",
+  "sync": "Disabled throughout capture. No credentials or provider requests.",
+  "originals": {},
+  "layoutChecks": [
+    {
+      "file": "01-workspace.png",
+      "fitted": [],
+      "overflow": [],
+      "overlaps": []
+    },
+    {
+      "file": "02-drag-to-save.png",
+      "fitted": [],
+      "overflow": [],
+      "overlaps": []
+    },
+    {
+      "file": "03-themes.png",
+      "fitted": [],
+      "overflow": [],
+      "overlaps": []
+    },
+    {
+      "file": "04-local-and-backup.png",
+      "fitted": [],
+      "overflow": [],
+      "overlaps": []
+    },
+    {
+      "file": "05-optional-sync.png",
+      "fitted": [
+        {
+          "text": "동기화도,내가 결정해요.",
+          "from": 62,
+          "to": 60
+        }
+      ],
+      "overflow": [],
+      "overlaps": []
+    }
+  ]
+}

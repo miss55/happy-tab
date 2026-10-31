@@ -1,0 +1,21 @@
+{
+  "dimensions": {
+    "width": 1280,
+    "height": 800
+  },
+  "screenshots": [
+    "01-workspace.png",
+    "02-drag-to-save.png",
+    "03-themes.png",
+    "04-local-and-backup.png",
+    "05-optional-sync.png"
+  ],
+  "source": "Real current Vue UI, isolated temporary browser, fictional demonstration records; editorial titles and drag arrow added outside the app.",
+  "sync": "Disabled throughout capture. No credentials or provider requests.",
+  "originals": {
+    "i18n.png": "4fc4647ed82036c0084c77567902129f9347b3a05629523c7521d5cbda3c69c2",
+    "local-storage.png": "7877be70db3df1751739fbfdc06a25231018ca522924b6b10f6dd7091c53dbc4",
+    "sync.png": "b85456850d03d005ae7ee4a3eea993d3659d31c49815f3c3d430c32740d1b5b9",
+    "theme.png": "19d03725c9fcdf765f80d752ad22b5b057f94a4ad495ea9b9722c6d27c2d0263"
+  }
+}

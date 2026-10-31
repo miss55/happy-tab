@@ -6,6 +6,25 @@ import { koMessages } from "@/i18n/locales/ko";
 import { zhTWMessages } from "@/i18n/locales/zh-TW";
 
 export const enMessages = {
+  "pages.autoGroup": "Create a group automatically",
+  "pages.title": "Bookmark pages",
+  "pages.default": "Bookmarks",
+  "pages.create": "New bookmark page",
+  "pages.manage": "Manage current page",
+  "pages.rename": "Rename page",
+  "pages.moveLeft": "Move left",
+  "pages.moveRight": "Move right",
+  "pages.deleteConfirm": "Delete the empty page “{name}”?",
+  "pages.keepDefault": "The default page is kept for legacy data.",
+  "pages.emptyOnly": "Only empty pages can be deleted. Move or remove their groups first.",
+  "pages.moveGroup": "Move group to page",
+  "pages.emptyPage": "This page has no groups yet. Create a group below, or add a bookmark to get started.",
+  "pages.nameRequired": "Enter a page name.",
+  "pages.unavailable": "This page or group is no longer available. Please refresh.",
+  "pages.notEmpty": "Move or remove all groups before deleting this page.",
+  "pages.saveFailed": "Unable to save bookmark page changes.",
+  "pages.syncIncompatible": "The sync snapshot is invalid or uses an unsupported version. Update Tabvia on all devices and try again.",
+
   "language.label": "Language",
   "language.en": "English",
   "language.zhCN": "简体中文",
@@ -369,6 +388,25 @@ export const enMessages = {
 export type MessageKey = keyof typeof enMessages;
 
 export const zhCNMessages: Record<MessageKey, string> = {
+  "pages.autoGroup": "自动创建分组",
+  "pages.title": "书签页",
+  "pages.default": "书签",
+  "pages.create": "新建书签页",
+  "pages.manage": "管理当前页",
+  "pages.rename": "重命名书签页",
+  "pages.moveLeft": "向左移动",
+  "pages.moveRight": "向右移动",
+  "pages.deleteConfirm": "删除空书签页“{name}”？",
+  "pages.keepDefault": "默认页用于兼容旧数据，不能删除。",
+  "pages.emptyOnly": "仅可删除空页，请先移动或删除页内分组。",
+  "pages.moveGroup": "将分组移动到书签页",
+  "pages.emptyPage": "此页还没有分组。可在下方新建分组，或直接添加书签。",
+  "pages.nameRequired": "请输入书签页名称。",
+  "pages.unavailable": "书签页或分组已不可用，请刷新后重试。",
+  "pages.notEmpty": "请先移动或删除此页内的所有分组。",
+  "pages.saveFailed": "无法保存书签页更改。",
+  "pages.syncIncompatible": "同步快照无效或版本不受支持，请更新所有设备上的 Tabvia 后重试。",
+
   "language.label": "语言",
   "language.en": "English",
   "language.zhCN": "简体中文",

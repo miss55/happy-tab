@@ -12,6 +12,8 @@ import AboutDialog from "@/components/AboutDialog.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import QuickNavDock from "@/components/QuickNavDock.vue";
 import LinkDragPreview from "@/components/LinkDragPreview.vue";
+import BookmarkPageTabs from "@/components/BookmarkPageTabs.vue";
+import { DEFAULT_BOOKMARK_PAGE_ID } from "@/types/bookmarkPages";
 import {
   activateBrowserTab,
   closeBrowserTab,
@@ -65,7 +67,7 @@ import {
   DataBackupError,
   type DataImportMode,
   type DataImportSummary,
-  type TabviaBackupV1
+  type TabviaBackup
 } from "@/types/dataPortability";
 import type { Link, LinkGroupWithLinks } from "@/types/links";
 import type { ProviderType, SyncProviderConfig } from "@/services/sync/types";
@@ -108,11 +110,13 @@ const {
   testStatus: syncTestStatus
 } = storeToRefs(syncStore);
 const {
-  groups: linkGroups,
+  currentGroups: linkGroups,
+  groups: allLinkGroups,
+  pages: bookmarkPages,
+  activePageId,
   isLoading: isLinksLoading,
   errorMessage: linksErrorMessage,
-  defaultGroupId,
-  linkCount
+  defaultGroupId
 } = storeToRefs(linksStore);
 const { errorMessage: navErrorMessage, isLoading: isNavLoading } = storeToRefs(navStore);
 const {
@@ -139,6 +143,7 @@ const linkForm = reactive({
 });
 const editingGroupId = ref("");
 const groupEditName = ref("");
+const groupEditPageId = ref("");
 const groupEditColorIndex = ref(0);
 const groupColorIndexes = Array.from({ length: GROUP_HEADER_COLOR_COUNT }, (_, index) => index);
 const editingLinkId = ref("");
@@ -358,7 +363,7 @@ const themeErrorKey = ref<MessageKey | null>(null);
 const isThemeBackgroundBusy = ref(false);
 const isDataTransferBusy = ref(false);
 const dataImportMode = ref<DataImportMode>("merge");
-const selectedImportBackup = ref<TabviaBackupV1 | null>(null);
+const selectedImportBackup = ref<TabviaBackup | null>(null);
 const selectedImportFileName = ref("");
 const dataTransferNotice = ref<{
   kind: "success" | "error";
@@ -442,7 +447,9 @@ const windowDisplayNumber = (windowId: number) => {
   return index >= 0 ? index + 1 : windowId;
 };
 
-const activeGroupId = computed(() => selectedGroupId.value || defaultGroupId.value);
+const activeGroupId = computed(() => linkGroups.value.some(group => group.id === selectedGroupId.value)
+  ? selectedGroupId.value : defaultGroupId.value);
+const bookmarkPageName = (page: { name: string }) => page.name || t("pages.default");
 
 const activeGroupName = computed(
   () => linkGroups.value.find((group) => group.id === activeGroupId.value)?.name || t("top.bookmarks")
@@ -729,7 +736,8 @@ const saveBrowserTabToGroup = async (tab: BrowserTab, groupId: string, index?: n
 };
 
 const saveTabAsLink = async (tab: BrowserTab) => {
-  await saveBrowserTabToGroup(tab, activeGroupId.value);
+  const groupId = activeGroupId.value || await linksStore.ensureCurrentGroup();
+  await saveBrowserTabToGroup(tab, groupId);
 };
 
 const openGhostGroupNaming = async () => {
@@ -768,12 +776,10 @@ const commitGhostGroup = async () => {
 };
 
 const addCustomLink = async () => {
-  if (!activeGroupId.value) {
-    return;
-  }
+  const groupId = activeGroupId.value || await linksStore.ensureCurrentGroup();
 
   await linksStore.addLink({
-    group_id: activeGroupId.value,
+    group_id: groupId,
     title: linkForm.title,
     url: linkForm.url
   });
@@ -810,6 +816,7 @@ const startEditingGroup = (group: LinkGroupWithLinks) => {
   editingLinkId.value = "";
   editingGroupId.value = group.id;
   groupEditName.value = group.name;
+  groupEditPageId.value = group.page_id || DEFAULT_BOOKMARK_PAGE_ID;
   groupEditColorIndex.value = resolveGroupColorIndex(group.color, group.id);
 };
 
@@ -833,7 +840,11 @@ const saveGroupEdit = async () => {
     return;
   }
 
-  await linksStore.updateGroup(editingGroupId.value, groupEditName.value, groupEditColorIndex.value);
+  const id = editingGroupId.value;
+  const pageId = groupEditPageId.value;
+  const originalPageId = activePageId.value;
+  await linksStore.updateGroup(id, groupEditName.value, groupEditColorIndex.value);
+  if (pageId !== originalPageId) await linksStore.moveGroup(id, pageId);
   cancelEditingGroup();
 };
 
@@ -1353,7 +1364,7 @@ const endTodoDrag = () => {
 };
 
 const getBackupSummaryParams = (
-  backup: TabviaBackupV1 | DataImportSummary
+  backup: TabviaBackup | DataImportSummary
 ): TranslationParams => {
   if ("data" in backup) {
     return {
@@ -1723,16 +1734,25 @@ const closeBookmarkCreateOnEscape = (event: KeyboardEvent) => {
 watch(
   defaultGroupId,
   (groupId) => {
-    if (groupId && !selectedGroupId.value) {
-      selectedGroupId.value = groupId;
-    }
+    if (!linkGroups.value.some(group => group.id === selectedGroupId.value)) selectedGroupId.value = groupId;
   },
   { immediate: true }
 );
 
+watch(activePageId, () => {
+  selectedGroupId.value = defaultGroupId.value;
+  editingGroupId.value = "";
+  editingLinkId.value = "";
+  isNamingGhostGroup.value = false;
+  isBookmarkCreateOpen.value = false;
+  clearBookmarkDropTargets();
+  void nextTick(() => linkGroupMasonry?.refresh());
+});
+
 watch(
   () => [workspaceSettings.value.showTodos, linkGroups.value.map((group) => group.id).join("\0")],
   () => {
+    if (!linkGroups.value.some(group => group.id === selectedGroupId.value)) selectedGroupId.value = defaultGroupId.value;
     linkGroupMasonry?.refresh();
   },
   { flush: "post" }
@@ -2706,11 +2726,9 @@ onBeforeUnmount(() => {
       <aside ref="savedLinksColumn" class="workspace-column saved-links-column">
         <QuickNavDock :incoming-tab="draggingBrowserTab" :incoming-link="incomingSavedLink" :available-tabs="windowGroups.flatMap(group => group.tabs)" :confirm-remove="askConfirm" />
 
-        <header class="section-header">
-          <div>
-            <h2>{{ t("top.bookmarks") }}</h2>
-            <p>{{ t("bookmarks.summary", { count: linkCount }) }}</p>
-          </div>
+        <header class="section-header bookmark-section-header">
+          <BookmarkPageTabs :locked="Boolean(draggingGroupId || draggingLink || draggingBrowserTab || isSavingDroppedTab)"
+            :confirm-remove="askConfirm" />
         <div
           ref="bookmarkCreatePanel"
           class="bookmark-create-panel"
@@ -2742,6 +2760,7 @@ onBeforeUnmount(() => {
             <form class="stacked-form" @submit.prevent="addCustomLink">
               <label for="target-group">{{ t("bookmarks.targetGroup") }}</label>
               <select id="target-group" v-model="selectedGroupId">
+                <option v-if="!linkGroups.length" value="">{{ t('pages.autoGroup') }}</option>
                 <option v-for="group in linkGroups" :key="group.id" :value="group.id">
                   {{ group.name }}
                 </option>
@@ -2765,7 +2784,11 @@ onBeforeUnmount(() => {
         </div>
         </header>
 
+        <p v-if="!isLinksLoading && linkGroups.length === 0" class="muted-text bookmark-page-empty">{{ t('pages.emptyPage') }}</p>
         <section
+          id="bookmark-page-content"
+          role="tabpanel"
+          :aria-labelledby="`bookmark-page-${activePageId}`"
           ref="linkGroupsElement"
           class="link-groups"
           :class="{
@@ -2933,6 +2956,10 @@ onBeforeUnmount(() => {
             </header>
 
             <form v-if="editingGroupId === group.id" class="edit-form group-edit-form" @submit.prevent="saveGroupEdit">
+              <label :for="`edit-group-page-${group.id}`">{{ t('pages.moveGroup') }}</label>
+              <select :id="`edit-group-page-${group.id}`" v-model="groupEditPageId">
+                <option v-for="page in bookmarkPages" :key="page.id" :value="page.id">{{ bookmarkPageName(page) }}</option>
+              </select>
               <label :for="`edit-group-${group.id}`">{{ t("bookmarks.groupName") }}</label>
               <div class="form-row">
                 <input :id="`edit-group-${group.id}`" v-model="groupEditName" type="text" />
@@ -3005,9 +3032,11 @@ onBeforeUnmount(() => {
                   <form class="edit-form" @submit.prevent="saveLinkEdit">
                     <label :for="`edit-link-group-${link.id}`">{{ t("common.group") }}</label>
                     <select :id="`edit-link-group-${link.id}`" v-model="linkEditForm.group_id">
-                      <option v-for="targetGroup in linkGroups" :key="targetGroup.id" :value="targetGroup.id">
-                        {{ targetGroup.name }}
-                      </option>
+                      <optgroup v-for="page in bookmarkPages" :key="page.id" :label="bookmarkPageName(page)">
+                        <option v-for="targetGroup in allLinkGroups.filter(item => item.page_id === page.id)" :key="targetGroup.id" :value="targetGroup.id">
+                          {{ targetGroup.name }}
+                        </option>
+                      </optgroup>
                     </select>
 
                     <label :for="`edit-link-title-${link.id}`">{{ t("common.title") }}</label>
@@ -3092,7 +3121,8 @@ onBeforeUnmount(() => {
             </p>
           </article>
 
-          <article class="link-group link-group-ghost" :class="{ naming: isNamingGhostGroup }">
+          <!-- This tile belongs to its page; reusing it would animate from the previous page's layout. -->
+          <article :key="`new-group-${activePageId}`" class="link-group link-group-ghost" :class="{ naming: isNamingGhostGroup }">
             <button v-if="!isNamingGhostGroup" type="button" class="ghost-group-trigger" @click="openGhostGroupNaming">
               <span class="ghost-group-plus" aria-hidden="true">
                 <RowActionIcon name="plus" />

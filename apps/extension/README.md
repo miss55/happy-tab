@@ -12,6 +12,8 @@ Source: [https://github.com/miss55/happy-tab](https://github.com/miss55/happy-ta
 - Switches to a Browser Tab and closes Browser Tabs.
 - Saves Browser Tabs as local Links by button or by dragging them onto a Link Group.
 - Creates, edits, deletes, and drag-sorts Link Groups.
+- Organizes Link Groups into bookmark pages with creation, renaming, ordering,
+  cross-page group/link moves, empty-page deletion, and a device-local last-page preference.
 - Creates, edits, deletes, opens, and drag-sorts SavedLinks.
 - Supports SavedLink sorting within a group and across groups.
 - Tracks Link `open_count` and `last_opened_at`.
@@ -65,8 +67,18 @@ Run the extension tests:
 pnpm --filter @tabvia/extension test
 ```
 
-The current Dexie schema is version 6, which adds `nav_shortcuts`. The migration
-suite verifies fresh installs and upgrades from database versions 1, 2, and 3.
+The current Dexie schema is version 7, which adds `bookmark_pages` and group page
+membership. The migration suite verifies fresh installs and upgrades from database
+versions 1, 2, 3, and 6. Existing groups migrate to one shared default page.
+Version 2 backups/snapshots preserve pages; version 1 data remains readable.
+Update all syncing devices before using multiple pages. See
+[Bookmark pages](../../docs/bookmark-pages.md) for behavior and compatibility.
+
+Run the bookmark page browser checks with a disposable Chrome/Edge profile:
+
+```sh
+pnpm check:pages
+```
 
 Validate the extension manifest:
 

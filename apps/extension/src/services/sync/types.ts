@@ -1,4 +1,5 @@
 import type { MessageKey } from "@/i18n/messages";
+import type { BookmarkPage } from "@/types/bookmarkPages";
 import type { LinkGroup, SavedLink } from "@/types/links";
 import type { NavShortcut } from "@/types/navShortcuts";
 import type { TodoItem } from "@/types/todos";
@@ -16,6 +17,7 @@ export interface SyncSnapshot {
   updated_at: string;
   device_name?: string;
   data: {
+    bookmark_pages?: BookmarkPage[];
     link_groups: LinkGroup[];
     links: SavedLink[];
     todos: TodoItem[];

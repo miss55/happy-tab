@@ -1938,6 +1938,29 @@ label.theme-custom-fields {
   align-items: center;
 }
 
+.bookmark-section-header {
+  min-width: 0;
+  /* Keep both rows inside the frame when the surrounding grid has little height. */
+  height: max-content;
+}
+
+/* Solid themes use compact navigation; material themes retain their themed surface. */
+:root[data-theme-surface="solid"]:not([data-background-image="true"]) .saved-links-column > .section-header.bookmark-section-header {
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+@media (max-width: 560px) {
+  .saved-links-column > .bookmark-section-header {
+    gap: 8px;
+  }
+}
+
 .section-header p {
   margin-top: 4px;
   color: var(--theme-muted);
@@ -2688,6 +2711,36 @@ select:focus {
 
 .quick-nav-item.dragging {
   opacity: 0.45;
+}
+
+/* Animate inside the item so the list's reorder transition keeps its own transform. */
+.quick-nav.is-reordering .quick-nav-item:not(.dragging) > :is(.quick-nav-link, .quick-nav-edit-tile) {
+  transform-origin: 50% 65%;
+  animation: quick-nav-wiggle 150ms ease-in-out infinite alternate;
+}
+
+.quick-nav.is-reordering .quick-nav-item:nth-child(2n) > :is(.quick-nav-link, .quick-nav-edit-tile) {
+  animation-delay: -110ms;
+  animation-duration: 170ms;
+}
+
+.quick-nav.is-reordering .quick-nav-item:nth-child(3n) > :is(.quick-nav-link, .quick-nav-edit-tile) {
+  animation-delay: -60ms;
+}
+
+.quick-nav.is-reordering .quick-nav-link {
+  cursor: grabbing;
+}
+
+@keyframes quick-nav-wiggle {
+  from { transform: rotate(-1.6deg) translateY(-0.5px); }
+  to { transform: rotate(1.6deg) translateY(0.5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quick-nav.is-reordering .quick-nav-item > :is(.quick-nav-link, .quick-nav-edit-tile) {
+    animation: none;
+  }
 }
 
 /* Gap shown where an external tab or link would land. Same footprint as a card,

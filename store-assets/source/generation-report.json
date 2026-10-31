@@ -1,0 +1,12 @@
+{
+  "locales": [
+    "zh-TW",
+    "ja",
+    "ko",
+    "es",
+    "fr",
+    "de"
+  ],
+  "unchangedExistingPNGs": 41,
+  "failures": []
+}

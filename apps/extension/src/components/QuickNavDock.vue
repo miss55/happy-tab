@@ -273,7 +273,7 @@ const openShortcutInBackground = (event: MouseEvent, shortcut: NavShortcut) => {
 };
 
 const startShortcutDrag = (event: DragEvent, shortcut: NavShortcut) => {
-  if (!isManaging.value || isMutating.value) { event.preventDefault(); return; }
+  if (isMutating.value) { event.preventDefault(); return; }
   draggingId.value = shortcut.id;
   event.dataTransfer?.setData("text/plain", shortcut.url);
 
@@ -382,7 +382,7 @@ const commitDrop = async (event: DragEvent) => {
 </script>
 
 <template>
-  <section class="quick-nav" data-navigation-drop-target :class="{ 'is-managing': isManaging, 'is-drop-target': isDragOver && (Boolean(draggingId) || canAcceptExternal) }"
+  <section class="quick-nav" data-navigation-drop-target :class="{ 'is-managing': isManaging, 'is-reordering': Boolean(draggingId), 'is-drop-target': isDragOver && (Boolean(draggingId) || canAcceptExternal) }"
     :aria-label="t('nav.title')" @dragover="onDragOver" @dragleave="onDragLeave" @drop="commitDrop"
     @keydown.esc="isManaging = false" @wheel="scrollHorizontalOnWheel($event, navigationTrack)">
     <header class="quick-nav-header">
@@ -397,10 +397,10 @@ const commitDrop = async (event: DragEvent) => {
       <p v-if="displayEntries.length === 0" class="quick-nav-empty">{{ t("nav.empty") }}</p>
       <TransitionGroup v-else tag="ul" name="quick-nav-shift" class="quick-nav-list">
         <li v-for="{ id, shortcut } in displayEntries" :key="id" class="quick-nav-item" :class="{ dragging: draggingId === id }"
-          :draggable="Boolean(shortcut) && isManaging && !isMutating" @dragstart="shortcut && startShortcutDrag($event, shortcut)" @dragend="endShortcutDrag">
+          :draggable="Boolean(shortcut) && !isMutating" @dragstart="shortcut && startShortcutDrag($event, shortcut)" @dragend="endShortcutDrag">
           <span v-if="!shortcut" class="quick-nav-placeholder" aria-hidden="true" />
           <a v-else-if="!isManaging" class="quick-nav-link" :href="shortcut.url" :title="shortcut.title"
-            :aria-label="navDockLabel(shortcut.title, shortcut.url)" draggable="false" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
+            :aria-label="navDockLabel(shortcut.title, shortcut.url)" :draggable="!isMutating" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
             @click="openShortcut($event, shortcut)" @auxclick="openShortcutInBackground($event, shortcut)"
             @keydown="onShortcutKeydown($event, shortcut)">
             <span class="quick-nav-icon-frame">

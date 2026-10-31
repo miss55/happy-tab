@@ -1,4 +1,7 @@
 import { defineStore } from "pinia";
+import { createBookmarkPage, deleteEmptyBookmarkPage, ensureBookmarkPages, listBookmarkPages, moveLinkGroupToPage, renameBookmarkPage, reorderBookmarkPages } from "@/repositories/bookmarkPagesRepository";
+import { DEFAULT_BOOKMARK_PAGE_ID, type BookmarkPage } from "@/types/bookmarkPages";
+import { getLocalStorageValue, setLocalStorageValue } from "@/services/chromeStorage";
 import { messageKeyFromError } from "@/i18n";
 import type { MessageKey } from "@/i18n/messages";
 import {
@@ -8,6 +11,7 @@ import {
   assignMissingGroupColors,
   incrementLinkOpenStats,
   listLinkGroupsWithLinks,
+  listLinkGroups,
   reorderLinkGroups,
   reorderLinks,
   softDeleteLink,
@@ -59,6 +63,9 @@ export const applyGroupOrder = (current: LinkGroupWithLinks[], groupIds: string[
 };
 
 interface LinksState {
+  pages: BookmarkPage[];
+  activePageId: string;
+  hasLoadedPages: boolean;
   groups: LinkGroupWithLinks[];
   isLoading: boolean;
   errorMessage: MessageKey | "";
@@ -66,14 +73,18 @@ interface LinksState {
 
 export const useLinksStore = defineStore("links", {
   state: (): LinksState => ({
+    pages: [],
+    activePageId: DEFAULT_BOOKMARK_PAGE_ID,
+    hasLoadedPages: false,
     groups: [],
     isLoading: false,
     errorMessage: ""
   }),
 
   getters: {
-    defaultGroupId: (state) => state.groups[0]?.id || "",
-    linkCount: (state) => state.groups.reduce((count, group) => count + group.links.length, 0)
+    currentGroups: (state) => state.groups.filter(group => (group.page_id || DEFAULT_BOOKMARK_PAGE_ID) === state.activePageId),
+    defaultGroupId(): string { return this.currentGroups[0]?.id || ""; },
+    linkCount(): number { return this.currentGroups.reduce((count, group) => count + group.links.length, 0); }
   },
 
   actions: {
@@ -87,7 +98,15 @@ export const useLinksStore = defineStore("links", {
       this.errorMessage = "";
 
       try {
-        await ensureDefaultLinkGroup();
+        await ensureBookmarkPages();
+        if (!this.hasLoadedPages) {
+          const saved = await getLocalStorageValue<string>("happy_tab_active_bookmark_page").catch(() => undefined);
+          if (saved) this.activePageId = saved;
+        }
+        this.pages = await listBookmarkPages();
+        if (!this.pages.some(page => page.id === this.activePageId)) this.activePageId = DEFAULT_BOOKMARK_PAGE_ID;
+        if (!this.hasLoadedPages && !(await listLinkGroups()).length) await ensureDefaultLinkGroup();
+        this.hasLoadedPages = true;
         await assignMissingGroupColors();
         this.groups = await listLinkGroupsWithLinks();
       } catch (error) {
@@ -99,11 +118,66 @@ export const useLinksStore = defineStore("links", {
       }
     },
 
+    async selectPage(id: string) {
+      if (!this.pages.some(page => page.id === id)) return;
+      this.activePageId = id;
+      try { await setLocalStorageValue("happy_tab_active_bookmark_page", id); }
+      catch { this.errorMessage = "error.saveWorkspace"; }
+    },
+
+    async savePage(name: string, id?: string) {
+      this.errorMessage = "";
+      try {
+        const page = id ? await renameBookmarkPage(id, name) : await createBookmarkPage(name);
+        await this.loadLinks();
+        if (page) await this.selectPage(page.id);
+      } catch (error) {
+        this.errorMessage = messageKeyFromError(error, "pages.saveFailed");
+        throw error;
+      }
+    },
+
+    async deletePage(id: string) {
+      this.errorMessage = "";
+      try {
+        await deleteEmptyBookmarkPage(id);
+        await this.loadLinks();
+        await this.selectPage(this.activePageId);
+      } catch (error) {
+        this.errorMessage = messageKeyFromError(error, "pages.saveFailed");
+        throw error;
+      }
+    },
+
+    async sortPages(ids: string[]) {
+      this.errorMessage = "";
+      try { await reorderBookmarkPages(ids); await this.loadLinks(); }
+      catch (error) { this.errorMessage = messageKeyFromError(error, "pages.saveFailed"); throw error; }
+    },
+
+    async moveGroup(groupId: string, pageId: string) {
+      this.errorMessage = "";
+      try { await moveLinkGroupToPage(groupId, pageId); await this.loadLinks(); }
+      catch (error) { this.errorMessage = messageKeyFromError(error, "pages.saveFailed"); throw error; }
+    },
+
+    async ensureCurrentGroup() {
+      if (this.defaultGroupId) return this.defaultGroupId;
+      try {
+        const group = await ensureDefaultLinkGroup(this.activePageId);
+        await this.loadLinks();
+        return group.id;
+      } catch (error) {
+        this.errorMessage = messageKeyFromError(error, "error.createGroup");
+        throw error;
+      }
+    },
+
     async addGroup(name: string) {
       this.errorMessage = "";
 
       try {
-        const group = await createLinkGroup({ name });
+        const group = await createLinkGroup({ name, page_id: this.activePageId });
         await this.loadLinks();
         return group;
       } catch (error) {

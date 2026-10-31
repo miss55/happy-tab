@@ -1,0 +1,22 @@
+{
+  "locale": "zh-CN",
+  "dimensions": {
+    "width": 1280,
+    "height": 800
+  },
+  "screenshots": [
+    "01-workspace.png",
+    "02-drag-to-save.png",
+    "03-themes.png",
+    "04-local-and-backup.png",
+    "05-optional-sync.png"
+  ],
+  "source": "真实简体中文 Vue 界面；隔离浏览器和虚构演示数据；界面外添加宣传标题与拖动指示箭头。",
+  "sync": "Disabled throughout capture. No credentials or provider requests.",
+  "originals": {
+    "i18n.png": "4837fba5173d568f3a52481e851b21d60bc95810ff23d8216c3dec678142c620",
+    "local-storage.png": "f9b5fef02c4c1655994df4eef1450a2a6f5058e486bad5974adf48ceb963fc5b",
+    "sync.png": "86d229132b3d3ac0ef98b5caa5020126d9c945ea61e09d2dbcffea0593d8616e",
+    "theme.png": "be362497f7b21f98ab994f80be629c32045ef0fdaef396ee2ec4a0a1e5eed918"
+  }
+}

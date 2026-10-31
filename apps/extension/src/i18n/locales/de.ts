@@ -1,6 +1,25 @@
 import type { MessageKey } from "@/i18n/messages";
 
 export const deMessages: Record<MessageKey, string> = {
+  "pages.autoGroup": "Gruppe automatisch erstellen",
+  "pages.title": "Lesezeichenseiten",
+  "pages.default": "Lesezeichen",
+  "pages.create": "Neue Seite",
+  "pages.manage": "Aktuelle Seite verwalten",
+  "pages.rename": "Seite umbenennen",
+  "pages.moveLeft": "Nach links",
+  "pages.moveRight": "Nach rechts",
+  "pages.deleteConfirm": "Leere Seite „{name}“ löschen?",
+  "pages.keepDefault": "Die Standardseite bleibt für ältere Daten erhalten.",
+  "pages.emptyOnly": "Nur leere Seiten können gelöscht werden. Verschiebe oder lösche zuerst die Gruppen.",
+  "pages.moveGroup": "Gruppe auf Seite verschieben",
+  "pages.emptyPage": "Diese Seite hat noch keine Gruppen. Erstelle unten eine Gruppe oder füge ein Lesezeichen hinzu.",
+  "pages.nameRequired": "Gib einen Seitennamen ein.",
+  "pages.unavailable": "Diese Seite oder Gruppe ist nicht mehr verfügbar. Bitte neu laden.",
+  "pages.notEmpty": "Verschiebe oder lösche zuerst alle Gruppen dieser Seite.",
+  "pages.saveFailed": "Die Seitenänderungen konnten nicht gespeichert werden.",
+  "pages.syncIncompatible": "Die Synchronisierungsdaten sind ungültig oder haben eine nicht unterstützte Version. Aktualisiere Tabvia auf allen Geräten.",
+
   "language.label": "Sprache",
   "language.en": "English",
   "language.zhCN": "简体中文",

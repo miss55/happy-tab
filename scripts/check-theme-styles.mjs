@@ -144,12 +144,15 @@ try {
         })()`);
         await delay(100);
         const popover = await evaluate(`(() => {
-          const input = document.querySelector('#target-group');
-          const rect = input.getBoundingClientRect();
-          const x = rect.x + rect.width / 2, y = rect.y + rect.height / 2;
-          const hits = document.elementsFromPoint(x, y);
-          return {inputOnTop: hits[0] === input, overlapsCard: hits.some(el => el.matches('.link-group')),
-            actual: hits[0]?.className};
+          // The page strip can sit behind the first field. Verify every field
+          // stays on top, and retain a real overlap with the card board below.
+          const fields = [...document.querySelectorAll('#bookmark-create-content input, #bookmark-create-content select')].map(input => {
+            const rect = input.getBoundingClientRect();
+            const hits = document.elementsFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+            return {inputOnTop: hits[0] === input, overlapsCard: hits.some(el => el.matches('.link-group')),
+              actual: hits[0]?.className};
+          });
+          return {inputOnTop: fields.every(field => field.inputOnTop), overlapsCard: fields.some(field => field.overlapsCard), fields};
         })()`);
         if (!popover.inputOnTop || !popover.overlapsCard) throw new Error(`Add panel ${width}/${style}/blur=${blur}: ${JSON.stringify(popover)}`);
         await evaluate("document.querySelector('.bookmark-create-trigger').click()");

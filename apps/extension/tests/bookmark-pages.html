@@ -1,0 +1,204 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>
+<div id="theme-background"></div><div id="app"></div><pre id="result" hidden>RUNNING</pre>
+<script type="module">
+import Dexie from 'dexie';
+import { nextTick } from 'vue';
+const checks = [];
+const check = (value, label) => { if (!value) throw new Error(label); checks.push(label); };
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+const until = async (condition, label) => {
+  for (let i = 0; i < 100; i++) { if (condition()) { await nextTick(); return; } await wait(40); }
+  throw new Error('Timeout: ' + label);
+};
+const setValue = (selector, value) => {
+  const element = document.querySelector(selector);
+  if (!element) throw new Error('Missing control: ' + selector);
+  element.value = value;
+  element.dispatchEvent(new Event(element.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+};
+const submit = selector => document.querySelector(selector).dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+try {
+  // Seed an actual previous-release database before the application opens Dexie.
+  const timestamp = '2026-01-02T00:00:00.000Z';
+  const legacy = new Dexie('happy_tab');
+  legacy.version(6).stores({
+    link_groups: '&id, sort_order, deleted_at, updated_at', links: '&id, group_id, sort_order, deleted_at, updated_at',
+    todos: '&id, completed, sort_order, deleted_at, updated_at', usage_stats: '&id, target_type, target_id, deleted_at, updated_at',
+    sync_queue: '&id, entity_type, entity_id, status, created_at, deleted_at', theme_assets: '&id, updated_at',
+    nav_shortcuts: '&id, sort_order, deleted_at, updated_at'
+  });
+  await legacy.table('link_groups').bulkPut([
+    { id: 'legacy-projects', name: 'Projects', sort_order: 0, created_at: timestamp, updated_at: timestamp },
+    { id: 'legacy-reading', name: 'Reading', sort_order: 1, created_at: timestamp, updated_at: timestamp }
+  ]);
+  await legacy.table('links').bulkPut([
+    { id: 'legacy-link', group_id: 'legacy-projects', title: 'Tabvia docs', url: 'https://example.com/docs', sort_order: 0, open_count: 17, created_at: timestamp, updated_at: timestamp },
+    { id: 'legacy-link-2', group_id: 'legacy-projects', title: 'Project board', url: 'https://example.com/project', sort_order: 1, open_count: 4, created_at: timestamp, updated_at: timestamp }
+  ]);
+  legacy.close();
+  // Only this disposable test page supplies sample Browser Tabs.
+  globalThis.chrome.windows = { getAll: async () => [{ id: 1, focused: true, type: 'normal', tabs: [
+    { id: 9, windowId: 1, title: 'Sample browser tab', url: 'https://example.com/browser-tab', active: false, pinned: false }
+  ] }], update: async () => {} };
+  globalThis.chrome.tabs = { update: async () => {}, remove: async () => {} };
+  localStorage.setItem('happy_tab_locale', JSON.stringify('en'));
+  await import('/src/main.ts');
+  await until(() => document.querySelectorAll('.bookmark-page-tab').length === 1 && document.querySelector('[data-link-id="legacy-link"]'), 'migration and app mount');
+  const { useLinksStore } = await import('/src/stores/linksStore.ts');
+  const { tabviaDb: db } = await import('/src/db/tabviaDb.ts');
+  const { DEFAULT_BOOKMARK_PAGE_ID: defaultId } = await import('/src/types/bookmarkPages.ts');
+  const store = useLinksStore(document.querySelector('#app').__vue_app__.config.globalProperties.$pinia);
+  check(store.currentGroups.length === 2 && store.linkCount === 2, 'v6 groups and link counts migrate');
+  check(document.querySelector('.bookmark-page-tab').textContent.trim() === 'Bookmarks' && !document.querySelector('.bookmark-section-header h2'), 'page names replace redundant bookmark heading');
+  const { translate } = await import('/src/i18n/index.ts');
+  const summaryMatches = () => document.querySelector('.bookmark-page-summary')?.textContent === translate('bookmarks.summary', {count: store.linkCount});
+  check(summaryMatches(), 'summary shows current page count and local storage description');
+  check((await db.links.get('legacy-link')).open_count === 17, 'migration keeps link stats');
+  const { setShowTodos } = await import('/src/services/workspaceSettings.ts');
+  const { useTodosStore } = await import('/src/stores/todosStore.ts');
+  const todoStore = useTodosStore(document.querySelector('#app').__vue_app__.config.globalProperties.$pinia);
+  await setShowTodos(true); await todoStore.addTodo('Shared across pages');
+
+  document.querySelector('.bookmark-page-add').click(); await nextTick();
+  setValue('#bookmark-page-name', 'Work'); submit('.bookmark-page-editor');
+  await until(() => store.pages.length === 2 && store.activePageId !== defaultId, 'create page');
+  const workId = store.activePageId;
+  check(summaryMatches(), 'summary updates when switching to an empty page');
+  check(!document.querySelector('[data-link-id="legacy-link"]') && store.linkCount === 0, 'page switch isolates rendered bookmarks');
+  check(store.currentGroups.length === 0 && document.querySelector('.bookmark-page-empty'), 'new page starts empty');
+  check(document.querySelector('.todo-title')?.textContent === 'Shared across pages', 'todo remains shared after page switch');
+
+  document.querySelector('.bookmark-create-trigger').click(); await nextTick();
+  setValue('#link-title', 'Work home'); setValue('#link-url', 'https://example.com/work'); submit('.stacked-form');
+  await until(() => store.linkCount === 1, 'save on empty page');
+  const workGroupId = store.defaultGroupId;
+  check(store.currentGroups[0].page_id === workId, 'empty-page save creates group on current page');
+  check(summaryMatches(), 'summary updates when adding a link');
+  const tabGeometry = () => [...document.querySelectorAll('.bookmark-page-item, .bookmark-page-add')].map(element => {
+    const rect = element.getBoundingClientRect();
+    return {left: rect.left, width: rect.width};
+  });
+  const beforeSwitch = tabGeometry();
+
+  document.querySelector('#bookmark-page-' + defaultId).click(); await until(() => store.activePageId === defaultId, 'switch to default');
+  check(tabGeometry().every((rect, index) => Math.abs(rect.width - beforeSwitch[index].width) < .1 && Math.abs(rect.left - beforeSwitch[index].left) < .1), 'tab widths and add position remain stable when selection changes');
+  check(summaryMatches(), 'summary restores the selected page count');
+  document.querySelector('[data-group-id="legacy-reading"] .edit-toggle-button').click(); await nextTick();
+  setValue('#edit-group-page-legacy-reading', workId); submit('.group-edit-form');
+  await until(() => !store.currentGroups.some(group => group.id === 'legacy-reading'), 'move group across pages');
+  check((await db.link_groups.get('legacy-reading')).page_id === workId, 'group move persists');
+  document.querySelector('[data-link-id="legacy-link"] .edit-toggle-button').click(); await nextTick();
+  check(document.querySelector('#edit-link-group-legacy-link optgroup[label="Work"]'), 'link destination selector includes other pages');
+  setValue('#edit-link-group-legacy-link', workGroupId); submit('[data-link-id="legacy-link"] form');
+  await until(() => !document.querySelector('[data-link-id="legacy-link"]'), 'move single link across pages');
+  check((await db.links.get('legacy-link')).open_count === 17, 'cross-page link move keeps stats');
+
+  document.querySelector('#bookmark-page-' + workId).click(); await until(() => store.activePageId === workId, 'switch to work');
+  // Real DOM drag handlers and geometry, with synthetic HTML DragEvents.
+  const drag = (source, destination, x, y) => {
+    const dataTransfer = new DataTransfer();
+    const start = source.getBoundingClientRect();
+    source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer, clientX: start.left + 10, clientY: start.top + 10 }));
+    destination.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer, clientX: x, clientY: y }));
+    destination.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer, clientX: x, clientY: y }));
+    source.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
+  };
+  await wait(200);
+  let target = document.querySelector('[data-group-id="legacy-reading"]');
+  let rect = target.getBoundingClientRect();
+  drag(document.querySelector('[data-link-id="legacy-link"]'), document.querySelector('.link-groups'), rect.left + 20, rect.top + 70);
+  await until(() => store.currentGroups.find(group => group.id === 'legacy-reading').links.some(link => link.id === 'legacy-link'), 'existing link drag across groups');
+  check((await db.links.get('legacy-link')).group_id === 'legacy-reading', 'link dragging persists in current page');
+  const before = store.currentGroups.map(group => group.id).join(',');
+  const moving = document.querySelector('[data-group-id="legacy-reading"] .drag-handle');
+  const firstRect = document.querySelector('[data-group-id="' + workGroupId + '"]').getBoundingClientRect();
+  drag(moving, document.querySelector('.link-groups'), firstRect.left + 10, firstRect.top + 10);
+  await until(() => store.currentGroups.map(group => group.id).join(',') !== before, 'existing group drag reorder');
+  check((await db.link_groups.get('legacy-projects')).sort_order === 0, 'group drag does not reorder hidden page');
+  // Capture the next drop point after the preceding group FLIP has settled.
+  await Promise.allSettled(document.getAnimations().filter(animation => animation.id === 'tabvia-flip').map(animation => animation.finished));
+
+  target = document.querySelector('[data-group-id="legacy-reading"]');
+  rect = target.getBoundingClientRect();
+  const oldCount = store.linkCount;
+  drag(document.querySelector('.tab-row'), document.querySelector('.link-groups'), rect.left + 20, rect.top + 70);
+  await until(() => store.linkCount === oldCount + 1, 'Browser Tab drag into current page');
+  check(store.currentGroups.find(group => group.id === 'legacy-reading').links.some(link => link.source === 'browser_tab'), 'Browser Tab drag keeps its source and current-page group');
+
+  const workTab = document.querySelector('#bookmark-page-' + workId);
+  drag(workTab, document.querySelector('#bookmark-page-' + defaultId), 0, 0);
+  await until(() => store.pages[0].id === workId, 'page tab drag reorder');
+  check(store.activePageId === workId, 'page sorting keeps selection');
+  document.querySelector('.bookmark-page-item.active .bookmark-page-menu').click(); await nextTick();
+  setValue('#bookmark-page-name', 'Work & research'); submit('.bookmark-page-editor');
+  await until(() => store.pages.find(page => page.id === workId).name === 'Work & research', 'rename page');
+  document.querySelector('#bookmark-page-' + workId).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await nextTick();
+  await until(() => document.querySelector('.bookmark-page-editor') && document.activeElement.id === 'bookmark-page-name', 'right click page editor');
+  check(document.querySelector('.bookmark-page-editor') && document.activeElement.id === 'bookmark-page-name', 'right click opens focused page management');
+  check(document.querySelectorAll('.bookmark-page-tools button')[2].disabled, 'nonempty page deletion is disabled');
+  document.querySelector('#bookmark-page-' + defaultId).click(); await until(() => store.activePageId === defaultId, 'switch before keyboard test');
+  document.querySelector('[role="tablist"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
+  await until(() => store.activePageId === workId, 'keyboard navigation');
+  await until(() => document.activeElement.id === 'bookmark-page-' + workId, 'keyboard focus after preference save');
+  check(document.activeElement.id === 'bookmark-page-' + workId, 'keyboard selection moves focus');
+
+  document.querySelector('.bookmark-page-add').click(); await nextTick();
+  setValue('#bookmark-page-name', 'Disposable'); submit('.bookmark-page-editor');
+  await until(() => store.pages.length === 3, 'empty page to delete');
+  const disposableId = store.activePageId;
+  document.querySelector('.bookmark-page-item.active .bookmark-page-menu').click(); await nextTick();
+  document.querySelectorAll('.bookmark-page-tools button')[2].click();
+  await until(() => document.querySelector('.confirm-dialog .primary-button'), 'page deletion confirmation');
+  document.querySelector('.confirm-dialog .primary-button').click();
+  await until(() => store.pages.length === 2, 'page deletion');
+  check((await db.bookmark_pages.get(disposableId)).deleted_at && store.activePageId === defaultId, 'empty page soft delete falls back to default');
+  const { createTabviaBackup } = await import('/src/repositories/dataPortabilityRepository.ts');
+  const backup = await createTabviaBackup();
+  check(backup.version === 2 && backup.data.bookmark_pages.length === 2 && backup.data.link_groups.every(group => group.page_id), 'backup retains all page data');
+  await store.selectPage(workId);
+  check(JSON.parse(localStorage.getItem('happy_tab_active_bookmark_page')) === workId, 'last page persisted locally');
+  const pageRepo = await import('/src/repositories/bookmarkPagesRepository.ts');
+  const extras = [];
+  for (let i = 0; i < 14; i++) extras.push(await pageRepo.createBookmarkPage('Long bookmark page name ' + i));
+  await store.loadLinks(); await nextTick();
+  const strip = document.querySelector('.bookmark-page-list');
+  check(strip.scrollWidth > strip.clientWidth, 'many page tabs scroll horizontally');
+  await store.selectPage(extras.at(-1).id); await wait(100);
+  const plusRect = document.querySelector('.bookmark-page-action').getBoundingClientRect();
+  check(plusRect.right <= innerWidth && strip.scrollLeft > 0, 'overflow keeps add button visible and reveals selected page');
+  for (const page of extras) await pageRepo.deleteEmptyBookmarkPage(page.id);
+  await store.loadLinks(); await store.selectPage(workId);
+  await nextTick();
+  // A page switch replaces the board, rather than reordering the same groups.
+  // Large differences in page size must not carry the New Group tile across boards.
+  const stressGroups = Array.from({length: 36}, (_, index) => ({
+    id: crypto.randomUUID(), name: 'Page motion sample ' + index, page_id: workId,
+    sort_order: 100 + index, created_at: timestamp, updated_at: timestamp
+  }));
+  await db.link_groups.bulkPut(stressGroups); await store.loadLinks(); await nextTick();
+  check(document.querySelector('.link-group-ghost').getAnimations().some(animation => animation.id === 'tabvia-flip'), 'adding groups within a page retains New Group placement animation');
+  await Promise.allSettled(document.getAnimations().filter(animation => animation.id === 'tabvia-flip').map(animation => animation.finished));
+  const nativeAnimate = Element.prototype.animate;
+  const ghostMoves = [];
+  Element.prototype.animate = function(keyframes, options) {
+    if (this.matches('.link-group-ghost')) ghostMoves.push(keyframes);
+    return nativeAnimate.call(this, keyframes, options);
+  };
+  try {
+    for (const id of [defaultId, workId, defaultId, workId]) {
+      await store.selectPage(id); await nextTick(); await wait(30);
+    }
+    if (ghostMoves.length) throw new Error('New Group carried a previous page position: ' + JSON.stringify(ghostMoves[0]));
+    check(ghostMoves.length === 0, 'page switching does not animate New Group from another page');
+  } finally {
+    Element.prototype.animate = nativeAnimate;
+    await db.link_groups.bulkDelete(stressGroups.map(group => group.id));
+    await store.loadLinks(); await nextTick();
+  }
+  window.bookmarkPageTest = { checks, workId };
+  document.querySelector('#result').textContent = 'PASS ' + checks.length + ' checks: ' + checks.join('; ');
+} catch (error) {
+  console.error(error);
+  document.querySelector('#result').textContent = 'FAIL ' + (error.stack || error);
+}
+</script></body></html>

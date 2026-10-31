@@ -1,6 +1,25 @@
 import type { MessageKey } from "@/i18n/messages";
 
 export const zhTWMessages: Record<MessageKey, string> = {
+  "pages.autoGroup": "自動建立群組",
+  "pages.title": "書籤頁",
+  "pages.default": "書籤",
+  "pages.create": "新增書籤頁",
+  "pages.manage": "管理目前頁面",
+  "pages.rename": "重新命名書籤頁",
+  "pages.moveLeft": "向左移動",
+  "pages.moveRight": "向右移動",
+  "pages.deleteConfirm": "刪除空書籤頁「{name}」？",
+  "pages.keepDefault": "預設頁用於相容舊資料，不能刪除。",
+  "pages.emptyOnly": "僅可刪除空頁，請先移動或刪除頁內群組。",
+  "pages.moveGroup": "將群組移動到書籤頁",
+  "pages.emptyPage": "此頁尚無群組。可在下方新增群組，或直接新增書籤。",
+  "pages.nameRequired": "請輸入書籤頁名稱。",
+  "pages.unavailable": "書籤頁或群組已無法使用，請重新整理。",
+  "pages.notEmpty": "請先移動或刪除此頁內的所有群組。",
+  "pages.saveFailed": "無法儲存書籤頁變更。",
+  "pages.syncIncompatible": "同步快照無效或版本不受支援，請更新所有裝置上的 Tabvia 後重試。",
+
   "language.label": "語言",
   "language.en": "English",
   "language.zhCN": "简体中文",

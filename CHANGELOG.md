@@ -3,6 +3,18 @@
 Notable changes to the Tabvia extension. The version matches `apps/extension`
 and `apps/extension/public/manifest.json`.
 
+## [0.2.5] - 2026-10-31
+
+### Added
+
+- Bookmark pages organize link groups into separate workspaces. Create, rename, reorder, and remove empty pages, and move groups or links between pages from their edit controls.
+- Local migration keeps existing groups and links on the default page. Version 2 backups and optional sync snapshots include pages while still accepting version 1 data.
+- New store screenshots and editable sources cover English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, and German.
+
+### Changed
+
+- The bookmark toolbar shows page tabs and the current page's link count. Quick navigation, open browser tabs, and the optional todo list remain shared across pages.
+
 ## [0.2.4] - 2026-10-25
 
 ### Added

@@ -1,6 +1,25 @@
 import type { MessageKey } from "@/i18n/messages";
 
 export const frMessages: Record<MessageKey, string> = {
+  "pages.autoGroup": "Créer un groupe automatiquement",
+  "pages.title": "Pages de favoris",
+  "pages.default": "Favoris",
+  "pages.create": "Nouvelle page",
+  "pages.manage": "Gérer la page actuelle",
+  "pages.rename": "Renommer la page",
+  "pages.moveLeft": "Déplacer à gauche",
+  "pages.moveRight": "Déplacer à droite",
+  "pages.deleteConfirm": "Supprimer la page vide « {name} » ?",
+  "pages.keepDefault": "La page par défaut est conservée pour les anciennes données.",
+  "pages.emptyOnly": "Seules les pages vides peuvent être supprimées. Déplacez ou supprimez leurs groupes.",
+  "pages.moveGroup": "Déplacer le groupe vers la page",
+  "pages.emptyPage": "Cette page ne contient aucun groupe. Créez-en un ci-dessous ou ajoutez un favori.",
+  "pages.nameRequired": "Saisissez un nom de page.",
+  "pages.unavailable": "Cette page ou ce groupe n’est plus disponible. Actualisez la page.",
+  "pages.notEmpty": "Déplacez ou supprimez tous les groupes avant de supprimer cette page.",
+  "pages.saveFailed": "Impossible d’enregistrer les modifications de la page.",
+  "pages.syncIncompatible": "Les données synchronisées sont invalides ou leur version n’est pas prise en charge. Mettez à jour Tabvia sur tous les appareils.",
+
   "language.label": "Langue",
   "language.en": "English",
   "language.zhCN": "简体中文",

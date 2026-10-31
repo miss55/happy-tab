@@ -1,5 +1,7 @@
 export interface LinkGroup {
   id: string;
+  /** Absent only in legacy records and version 1 backups/snapshots. */
+  page_id?: string;
   name: string;
   description?: string;
   icon?: string;
@@ -35,6 +37,7 @@ export interface LinkGroupWithLinks extends LinkGroup {
 
 export interface CreateLinkGroupInput {
   name: string;
+  page_id?: string;
   description?: string;
   icon?: string;
   color?: string;

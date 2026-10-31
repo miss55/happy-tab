@@ -1,6 +1,25 @@
 import type { MessageKey } from "@/i18n/messages";
 
 export const jaMessages: Record<MessageKey, string> = {
+  "pages.autoGroup": "グループを自動作成",
+  "pages.title": "ブックマークページ",
+  "pages.default": "ブックマーク",
+  "pages.create": "ページを追加",
+  "pages.manage": "現在のページを管理",
+  "pages.rename": "ページ名を変更",
+  "pages.moveLeft": "左へ移動",
+  "pages.moveRight": "右へ移動",
+  "pages.deleteConfirm": "空のページ「{name}」を削除しますか？",
+  "pages.keepDefault": "既定のページは旧データとの互換性のため削除できません。",
+  "pages.emptyOnly": "空のページのみ削除できます。先にグループを移動または削除してください。",
+  "pages.moveGroup": "グループの移動先ページ",
+  "pages.emptyPage": "グループがありません。下でグループを作成するか、ブックマークを追加してください。",
+  "pages.nameRequired": "ページ名を入力してください。",
+  "pages.unavailable": "ページまたはグループを利用できません。再読み込みしてください。",
+  "pages.notEmpty": "先にすべてのグループを移動または削除してください。",
+  "pages.saveFailed": "ページの変更を保存できません。",
+  "pages.syncIncompatible": "同期データが無効か未対応のバージョンです。すべての端末で Tabvia を更新してください。",
+
   "language.label": "言語",
   "language.en": "English",
   "language.zhCN": "简体中文",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { encryptPayload, SyncDecryptError } from "./encryption";
-import { isValidSyncSnapshot, parseStoredSnapshot } from "./snapshotCodec";
+import { isValidSyncSnapshot, parseStoredSnapshot, SyncSnapshotVersionError } from "./snapshotCodec";
 import { PLACEHOLDER_SYNC_SNAPSHOT } from "./placeholderSnapshot";
 
 describe("snapshotCodec", () => {
@@ -30,5 +30,16 @@ describe("snapshotCodec", () => {
 
     await expect(parseStoredSnapshot(encrypted, "wrong-password")).rejects.toBeInstanceOf(SyncDecryptError);
     await expect(parseStoredSnapshot(encrypted, "")).rejects.toBeInstanceOf(SyncDecryptError);
+  });
+
+  it("rejects future versions and incomplete page payloads instead of treating them as an empty store", async () => {
+    for (const value of [
+      { ...PLACEHOLDER_SYNC_SNAPSHOT, version: 999 },
+      { ...PLACEHOLDER_SYNC_SNAPSHOT, version: 2 },
+      { ...PLACEHOLDER_SYNC_SNAPSHOT, version: 2, data: { ...PLACEHOLDER_SYNC_SNAPSHOT.data, bookmark_pages: [null] } }
+    ]) {
+      await expect(parseStoredSnapshot(value)).rejects.toBeInstanceOf(SyncSnapshotVersionError);
+      await expect(parseStoredSnapshot(JSON.stringify(value))).rejects.toBeInstanceOf(SyncSnapshotVersionError);
+    }
   });
 });

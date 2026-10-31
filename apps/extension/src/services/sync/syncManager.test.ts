@@ -8,6 +8,8 @@ const providerMocks = vi.hoisted(() => ({
 
 vi.mock("@/db/tabviaDb", () => ({
   tabviaDb: {
+    transaction: vi.fn(async (_mode: string, _tables: unknown, read: () => Promise<unknown>) => read()),
+    bookmark_pages: { toArray: vi.fn().mockResolvedValue([]) },
     link_groups: { toArray: vi.fn().mockResolvedValue([]) },
     links: { toArray: vi.fn().mockResolvedValue([]) },
     todos: { toArray: vi.fn().mockResolvedValue([]) },
@@ -79,6 +81,14 @@ describe("performSync", () => {
     expect(result.success).toBe(true);
     expect(result.mode).toBe("pushed");
     expect(providerMocks.pushSnapshot).toHaveBeenCalledOnce();
+  });
+
+  it("does not write or upload over an unsupported remote version from any provider", async () => {
+    providerMocks.pullSnapshot.mockResolvedValue({ version: 999, updated_at: "2026-01-01T00:00:00.000Z",
+      data: { link_groups: [], links: [], todos: [] } });
+    const result = await performSync({ ...getDefaultSyncConfig(), enabled: true });
+    expect(result).toMatchObject({ success: false, message: "pages.syncIncompatible" });
+    expect(providerMocks.pushSnapshot).not.toHaveBeenCalled();
   });
 });
 

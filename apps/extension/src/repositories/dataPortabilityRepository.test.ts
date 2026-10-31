@@ -2,6 +2,7 @@ import Dexie from "dexie";
 import { IDBKeyRange, indexedDB } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { TabviaBackupV1 } from "@/types/dataPortability";
+import { createDefaultBookmarkPage, DEFAULT_BOOKMARK_PAGE_ID } from "@/types/bookmarkPages";
 
 const DATABASE_NAME = "happy_tab";
 const timestamp = "2026-07-30T00:00:00.000Z";
@@ -126,7 +127,7 @@ describe("dataPortabilityRepository", () => {
       expect.objectContaining({ code: "unsafe_url" })
     );
 
-    const unsupportedBackup = { ...makeBackup(), version: 2 };
+    const unsupportedBackup = { ...makeBackup(), version: 999 };
     expect(() => repository.parseTabviaBackup(unsupportedBackup)).toThrowError(
       expect.objectContaining({ code: "unsupported_version" })
     );
@@ -158,6 +159,42 @@ describe("dataPortabilityRepository", () => {
     await expect(readTabviaBackupFile(oversizedFile)).rejects.toEqual(
       expect.objectContaining({ code: "file_too_large" })
     );
+  });
+
+  it("imports version 1 into the shared default page without resetting its custom name", async () => {
+    await tabviaDb.bookmark_pages.put({ ...createDefaultBookmarkPage(), name: "My home" });
+    const parsed = repository.parseTabviaBackup(makeBackup());
+    expect(parsed.version).toBe(2);
+    expect(parsed.data.link_groups[0].page_id).toBe(DEFAULT_BOOKMARK_PAGE_ID);
+    await repository.importTabviaBackup(makeBackup(), "merge");
+    expect(await tabviaDb.bookmark_pages.get(DEFAULT_BOOKMARK_PAGE_ID)).toMatchObject({ name: "My home" });
+    expect(await tabviaDb.links.get("link-imported")).toMatchObject({ open_count: 3, id: "link-imported" });
+  });
+
+  it("round-trips version 2 pages, page ownership and per-page order through replace", async () => {
+    const parsed = repository.parseTabviaBackup(makeBackup());
+    const work = { ...createDefaultBookmarkPage(), id: "work", name: "Work", sort_order: 1 };
+    parsed.data.bookmark_pages.push(work);
+    parsed.data.link_groups[0].page_id = work.id;
+    await repository.importTabviaBackup(parsed, "replace");
+    const exported = await repository.createTabviaBackup();
+    expect(exported.version).toBe(2);
+    expect(exported.data.bookmark_pages).toContainEqual(work);
+    expect(exported.data.link_groups[0]).toMatchObject({ page_id: work.id, sort_order: 0 });
+    await repository.importTabviaBackup(JSON.parse(JSON.stringify(exported)), "replace");
+    expect((await repository.createTabviaBackup()).data).toEqual(exported.data);
+  });
+
+  it("rejects invalid version 2 page references and duplicate pages before replacing any data", async () => {
+    await repository.importTabviaBackup(makeBackup(), "replace");
+    const before = (await repository.createTabviaBackup()).data;
+    const bad = repository.parseTabviaBackup(makeBackup());
+    bad.data.link_groups[0].page_id = "missing";
+    await expect(repository.importTabviaBackup(bad, "replace")).rejects.toMatchObject({ code: "invalid_data" });
+    expect((await repository.createTabviaBackup()).data).toEqual(before);
+    const duplicate = repository.parseTabviaBackup(makeBackup());
+    duplicate.data.bookmark_pages.push(duplicate.data.bookmark_pages[0]);
+    expect(() => repository.parseTabviaBackup(duplicate)).toThrowError(expect.objectContaining({ code: "invalid_data" }));
   });
 
   it("merges imported records without deleting unrelated local data", async () => {

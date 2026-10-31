@@ -1,11 +1,12 @@
 # Local Data Backup
 
 Tabvia exports local business data as a versioned JSON document. The current
-format is `happy-tab-backup` version `1`.
+format is `happy-tab-backup` version `2`. Version `1` remains importable.
 
 ## Included data
 
 - active Link Groups;
+- active bookmark pages and each Link Group's page membership;
 - active Links whose Link Group is included;
 - active Todos;
 - active Usage Stats whose Link is included;
@@ -21,9 +22,10 @@ silently increasing its size.
 ```json
 {
   "format": "happy-tab-backup",
-  "version": 1,
+  "version": 2,
   "exported_at": "2026-07-30T00:00:00.000Z",
   "data": {
+    "bookmark_pages": [],
     "link_groups": [],
     "links": [],
     "todos": [],
@@ -34,9 +36,11 @@ silently increasing its size.
 ```
 
 Entity fields use the same names and stable UUIDs as the IndexedDB records.
-Import accepts only the currently supported version and HTTP/HTTPS Link URLs.
+Import accepts versions 1 and 2 and HTTP/HTTPS Link URLs.
 IDs must be unique within each entity collection, every Link must reference an
 included Link Group, and every Usage Stat must reference an included Link.
+In version 2, every Link Group must reference an included bookmark page.
+Version 1 groups are placed in the shared default page automatically.
 Quick-nav shortcut URLs must be HTTP or HTTPS. `nav_shortcuts` may be omitted
 by older backups.
 
@@ -64,3 +68,5 @@ transaction. A validation failure does not partially import data.
 
 Future incompatible formats must increment `version` and add an explicit
 parser or migration. Unknown versions are rejected instead of being guessed.
+
+See [Bookmark pages](bookmark-pages.md) for migration and sync compatibility.

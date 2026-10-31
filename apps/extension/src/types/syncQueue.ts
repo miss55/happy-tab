@@ -1,4 +1,4 @@
-export type SyncQueueEntityType = "link_group" | "link" | "todo" | "usage_stat";
+export type SyncQueueEntityType = "bookmark_page" | "link_group" | "link" | "todo" | "usage_stat";
 export type SyncQueueOperation = "create" | "update" | "delete";
 export type SyncQueueStatus = "pending" | "processing" | "failed" | "done";
 

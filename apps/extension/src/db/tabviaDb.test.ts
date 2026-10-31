@@ -2,6 +2,7 @@ import Dexie from "dexie";
 import { IDBKeyRange, indexedDB } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { LinkGroup } from "@/types/links";
+import { DEFAULT_BOOKMARK_PAGE_ID } from "@/types/bookmarkPages";
 
 const DATABASE_NAME = "happy_tab";
 
@@ -68,7 +69,8 @@ describe("TabviaDb migrations", () => {
     const { tabviaDb } = await import("@/db/tabviaDb");
     await tabviaDb.open();
 
-    await expect(tabviaDb.link_groups.toArray()).resolves.toEqual([legacyGroup]);
+    await expect(tabviaDb.link_groups.toArray()).resolves.toEqual([{ ...legacyGroup, page_id: DEFAULT_BOOKMARK_PAGE_ID }]);
+    await expect(tabviaDb.bookmark_pages.count()).resolves.toBe(1);
   });
 
   it("preserves data for databases already created at version 3", async () => {
@@ -84,7 +86,7 @@ describe("TabviaDb migrations", () => {
     const { tabviaDb } = await import("@/db/tabviaDb");
     await tabviaDb.open();
 
-    await expect(tabviaDb.link_groups.toArray()).resolves.toEqual([currentGroup]);
+    await expect(tabviaDb.link_groups.toArray()).resolves.toEqual([{ ...currentGroup, page_id: DEFAULT_BOOKMARK_PAGE_ID }]);
   });
 
   it("creates only the current table names for a fresh database", async () => {
@@ -95,6 +97,34 @@ describe("TabviaDb migrations", () => {
     expect(tableNames).toContain("link_groups");
     expect(tableNames).toContain("theme_assets");
     expect(tableNames).not.toContain("linkGroups");
+  });
+
+  it("upgrades v6 in place without altering group order, soft deletes, links or open statistics", async () => {
+    const legacy = new Dexie(DATABASE_NAME);
+    legacy.version(6).stores({
+      link_groups: "&id, sort_order, deleted_at, updated_at",
+      links: "&id, group_id, sort_order, deleted_at, updated_at",
+      todos: "&id, completed, sort_order, deleted_at, updated_at",
+      usage_stats: "&id, target_type, target_id, deleted_at, updated_at",
+      sync_queue: "&id, entity_type, entity_id, status, created_at, deleted_at",
+      theme_assets: "&id, updated_at",
+      nav_shortcuts: "&id, sort_order, deleted_at, updated_at"
+    });
+    const timestamp = "2026-01-02T00:00:00.000Z";
+    const groups = [
+      { id: "g", name: "Existing", color: "2", sort_order: 7, created_at: timestamp, updated_at: timestamp },
+      { id: "deleted", name: "Deleted", sort_order: 3, created_at: timestamp, updated_at: timestamp, deleted_at: timestamp }
+    ];
+    const link = { id: "l", group_id: "g", title: "Existing link", url: "https://example.com", sort_order: 4,
+      open_count: 23, last_opened_at: timestamp, created_at: timestamp, updated_at: timestamp };
+    await legacy.table("link_groups").bulkPut(groups);
+    await legacy.table("links").put(link);
+    legacy.close();
+    const { tabviaDb } = await import("@/db/tabviaDb");
+    await tabviaDb.open();
+    expect(await tabviaDb.link_groups.toArray()).toEqual(groups.map(group => ({ ...group, page_id: DEFAULT_BOOKMARK_PAGE_ID })).sort((a, b) => a.id.localeCompare(b.id)));
+    expect(await tabviaDb.links.get(link.id)).toEqual(link);
+    expect(await tabviaDb.bookmark_pages.count()).toBe(1);
   });
 
   it("stores a local background image asset", async () => {

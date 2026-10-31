@@ -1,6 +1,25 @@
 import type { MessageKey } from "@/i18n/messages";
 
 export const esMessages: Record<MessageKey, string> = {
+  "pages.autoGroup": "Crear un grupo automáticamente",
+  "pages.title": "Páginas de marcadores",
+  "pages.default": "Marcadores",
+  "pages.create": "Nueva página",
+  "pages.manage": "Gestionar página actual",
+  "pages.rename": "Renombrar página",
+  "pages.moveLeft": "Mover a la izquierda",
+  "pages.moveRight": "Mover a la derecha",
+  "pages.deleteConfirm": "¿Eliminar la página vacía «{name}»?",
+  "pages.keepDefault": "La página predeterminada se conserva para los datos antiguos.",
+  "pages.emptyOnly": "Solo se pueden eliminar páginas vacías. Mueve o elimina sus grupos primero.",
+  "pages.moveGroup": "Mover grupo a la página",
+  "pages.emptyPage": "Esta página no tiene grupos. Crea uno abajo o añade un marcador.",
+  "pages.nameRequired": "Introduce un nombre de página.",
+  "pages.unavailable": "La página o el grupo ya no está disponible. Actualiza la página.",
+  "pages.notEmpty": "Mueve o elimina todos los grupos antes de eliminar esta página.",
+  "pages.saveFailed": "No se pudieron guardar los cambios de página.",
+  "pages.syncIncompatible": "Los datos de sincronización no son válidos o su versión no es compatible. Actualiza Tabvia en todos los dispositivos.",
+
   "language.label": "Idioma",
   "language.en": "English",
   "language.zhCN": "简体中文",

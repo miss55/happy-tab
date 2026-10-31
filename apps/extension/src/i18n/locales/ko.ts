@@ -1,6 +1,25 @@
 import type { MessageKey } from "@/i18n/messages";
 
 export const koMessages: Record<MessageKey, string> = {
+  "pages.autoGroup": "그룹 자동 생성",
+  "pages.title": "북마크 페이지",
+  "pages.default": "북마크",
+  "pages.create": "페이지 추가",
+  "pages.manage": "현재 페이지 관리",
+  "pages.rename": "페이지 이름 변경",
+  "pages.moveLeft": "왼쪽으로 이동",
+  "pages.moveRight": "오른쪽으로 이동",
+  "pages.deleteConfirm": "빈 페이지 “{name}”을 삭제할까요?",
+  "pages.keepDefault": "기본 페이지는 이전 데이터 호환을 위해 유지됩니다.",
+  "pages.emptyOnly": "빈 페이지만 삭제할 수 있습니다. 먼저 그룹을 이동하거나 삭제하세요.",
+  "pages.moveGroup": "그룹을 페이지로 이동",
+  "pages.emptyPage": "아직 그룹이 없습니다. 아래에서 그룹을 만들거나 북마크를 추가하세요.",
+  "pages.nameRequired": "페이지 이름을 입력하세요.",
+  "pages.unavailable": "페이지 또는 그룹을 사용할 수 없습니다. 새로고침하세요.",
+  "pages.notEmpty": "먼저 모든 그룹을 이동하거나 삭제하세요.",
+  "pages.saveFailed": "페이지 변경 사항을 저장할 수 없습니다.",
+  "pages.syncIncompatible": "동기화 데이터가 잘못되었거나 지원되지 않는 버전입니다. 모든 기기에서 Tabvia를 업데이트하세요.",
+
   "language.label": "언어",
   "language.en": "English",
   "language.zhCN": "简体中文",

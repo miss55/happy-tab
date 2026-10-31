@@ -38,6 +38,7 @@ New tab override:
 
 Business data is stored in IndexedDB through Dexie:
 
+- `bookmark_pages`
 - `link_groups`
 - `links`
 - `nav_shortcuts`
@@ -56,6 +57,8 @@ Current Dexie database:
   legacy Link Groups into `link_groups`
 - version 4: removes the legacy `linkGroups` table after the copy step
 - version 6: adds `nav_shortcuts`
+- version 7: adds `bookmark_pages`, assigns existing groups to a shared default
+  page, and indexes group page membership and page-local order
 
 The v3 and v4 steps must stay separate so an upgrade from v1/v2 can read the
 legacy table before it is removed.
@@ -67,12 +70,14 @@ Use `chrome.storage.local` only for lightweight settings:
 - last sync time
 - language preference
 - workspace flags such as whether the todo list is shown
+- last selected bookmark page (a device preference, excluded from sync/backup)
 
 ## Domain Terms
 
 - Browser Tab: currently opened Chrome tab from the Chrome tabs API.
 - Link: saved user-managed item persisted by Tabvia.
 - Link Group: user-defined group containing saved Links.
+- Bookmark Page: a named collection of Link Groups, displayed as a page tab.
 - Todo: local user-created task.
 - Quick nav shortcut: a site pinned in the horizontal dock. It is separate from Link Groups.
 
@@ -89,3 +94,7 @@ Sync is opt-in. The extension uploads an encrypted or plaintext snapshot to a st
 - Custom REST endpoint
 
 Conflict handling is last-write-wins based on item `updated_at`. Optional AES-256-GCM encryption runs in the extension before upload.
+
+Snapshot version 2 includes bookmark pages and their tombstones. Version 1 data is
+migrated into Default, preserving known local page membership during legacy edits.
+See [Bookmark pages](bookmark-pages.md) for mixed-version limits and recovery rules.
