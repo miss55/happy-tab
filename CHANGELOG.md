@@ -3,6 +3,13 @@
 Notable changes to the Tabvia extension. The version matches `apps/extension`
 and `apps/extension/public/manifest.json`.
 
+## [0.2.6] - 2026-11-16
+
+### Fixed
+
+- Bookmark groups and individual bookmarks now open in centered edit dialogs, keeping card heights and positions stable while editing.
+- Edit dialogs support Escape and return focus to the edit button when it is still visible. Failed saves show an error and keep the draft open.
+
 ## [0.2.5] - 2026-10-31
 
 ### Added

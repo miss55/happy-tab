@@ -286,6 +286,8 @@ export const deMessages: Record<MessageKey, string> = {
   "bookmarks.draggingGroupHint": "An eine hervorgehobene Position bewegen, dann loslassen.",
   "bookmarks.draggingLinkHint": "Zwischen Links oder in eine andere Gruppe bewegen, dann loslassen.",
   "bookmarks.draggingTabHint": "Wähle eine hervorgehobene Gruppe, um diesen Tab zu speichern.",
+  "bookmarks.editGroup": "Gruppe bearbeiten",
+  "bookmarks.editLink": "Lesezeichen bearbeiten",
   "bookmarks.groupName": "Gruppenname",
   "bookmarks.groupColor": "Gruppenfarbe",
   "bookmarks.moreGroupColors": "Weitere Farbabstufungen",

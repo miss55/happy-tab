@@ -286,6 +286,8 @@ export const jaMessages: Record<MessageKey, string> = {
   "bookmarks.draggingGroupHint": "ハイライトされた位置へ移動して離します。",
   "bookmarks.draggingLinkHint": "リンクの間や別のグループへ移動して離します。",
   "bookmarks.draggingTabHint": "ハイライトされたグループを選んで、このタブを保存します。",
+  "bookmarks.editGroup": "グループを編集",
+  "bookmarks.editLink": "ブックマークを編集",
   "bookmarks.groupName": "グループ名",
   "bookmarks.groupColor": "グループの色",
   "bookmarks.moreGroupColors": "その他の濃淡",

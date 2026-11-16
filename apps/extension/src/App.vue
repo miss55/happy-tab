@@ -10,6 +10,7 @@ import CloudflareSetupGuide from "@/components/CloudflareSetupGuide.vue";
 import LanguageMenu from "@/components/LanguageMenu.vue";
 import AboutDialog from "@/components/AboutDialog.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import BookmarkEditDialog from "@/components/BookmarkEditDialog.vue";
 import QuickNavDock from "@/components/QuickNavDock.vue";
 import LinkDragPreview from "@/components/LinkDragPreview.vue";
 import BookmarkPageTabs from "@/components/BookmarkPageTabs.vue";
@@ -141,6 +142,7 @@ const linkForm = reactive({
   title: "",
   url: ""
 });
+const isSavingBookmarkEdit = ref(false);
 const editingGroupId = ref("");
 const groupEditName = ref("");
 const groupEditPageId = ref("");
@@ -813,6 +815,7 @@ const openSavedLinkFromAuxClick = (event: MouseEvent, link: Link) => {
 };
 
 const startEditingGroup = (group: LinkGroupWithLinks) => {
+  linksStore.errorMessage = "";
   editingLinkId.value = "";
   editingGroupId.value = group.id;
   groupEditName.value = group.name;
@@ -821,31 +824,32 @@ const startEditingGroup = (group: LinkGroupWithLinks) => {
 };
 
 const cancelEditingGroup = () => {
+  if (isSavingBookmarkEdit.value) return;
   editingGroupId.value = "";
   groupEditName.value = "";
+  groupEditPageId.value = "";
   groupEditColorIndex.value = 0;
 };
 
-const toggleEditingGroup = (group: LinkGroupWithLinks) => {
-  if (editingGroupId.value === group.id) {
-    cancelEditingGroup();
-    return;
-  }
-
-  startEditingGroup(group);
-};
-
 const saveGroupEdit = async () => {
-  if (!editingGroupId.value) {
+  if (!editingGroupId.value || isSavingBookmarkEdit.value) {
     return;
   }
 
   const id = editingGroupId.value;
   const pageId = groupEditPageId.value;
   const originalPageId = activePageId.value;
-  await linksStore.updateGroup(id, groupEditName.value, groupEditColorIndex.value);
-  if (pageId !== originalPageId) await linksStore.moveGroup(id, pageId);
-  cancelEditingGroup();
+  isSavingBookmarkEdit.value = true;
+  try {
+    await linksStore.updateGroup(id, groupEditName.value, groupEditColorIndex.value);
+    if (pageId !== originalPageId) await linksStore.moveGroup(id, pageId);
+    isSavingBookmarkEdit.value = false;
+    cancelEditingGroup();
+  } catch {
+    // Keep the draft open; the store supplies the localized error.
+  } finally {
+    isSavingBookmarkEdit.value = false;
+  }
 };
 
 const groupHeaderStyleFor = (group: LinkGroupWithLinks) => {
@@ -907,6 +911,7 @@ const deleteGroup = async (group: LinkGroupWithLinks) => {
 };
 
 const startEditingLink = (link: Link) => {
+  linksStore.errorMessage = "";
   editingGroupId.value = "";
   editingLinkId.value = link.id;
   linkEditForm.group_id = link.group_id;
@@ -915,33 +920,33 @@ const startEditingLink = (link: Link) => {
 };
 
 const cancelEditingLink = () => {
+  if (isSavingBookmarkEdit.value) return;
   editingLinkId.value = "";
   linkEditForm.group_id = "";
   linkEditForm.title = "";
   linkEditForm.url = "";
 };
 
-const toggleEditingLink = (link: Link) => {
-  if (editingLinkId.value === link.id) {
-    cancelEditingLink();
-    return;
-  }
-
-  startEditingLink(link);
-};
-
 const saveLinkEdit = async () => {
-  if (!editingLinkId.value) {
+  if (!editingLinkId.value || isSavingBookmarkEdit.value) {
     return;
   }
 
-  await linksStore.editLink({
-    id: editingLinkId.value,
-    group_id: linkEditForm.group_id,
-    title: linkEditForm.title,
-    url: linkEditForm.url
-  });
-  cancelEditingLink();
+  isSavingBookmarkEdit.value = true;
+  try {
+    await linksStore.editLink({
+      id: editingLinkId.value,
+      group_id: linkEditForm.group_id,
+      title: linkEditForm.title,
+      url: linkEditForm.url
+    });
+    isSavingBookmarkEdit.value = false;
+    cancelEditingLink();
+  } catch {
+    // Keep the draft open; the store supplies the localized error.
+  } finally {
+    isSavingBookmarkEdit.value = false;
+  }
 };
 
 const deleteLink = async (link: Link) => {
@@ -1718,6 +1723,8 @@ const closeBookmarkCreateOnEscape = (event: KeyboardEvent) => {
 
   if (
     isTodoDialogOpen.value ||
+    editingGroupId.value ||
+    editingLinkId.value ||
     isNamingGhostGroup.value ||
     isSyncPanelOpen.value ||
     isThemePanelOpen.value ||
@@ -1903,6 +1910,82 @@ onBeforeUnmount(() => {
       </svg>
       <span>{{ savedTabMessage }}</span>
     </p>
+
+    <BookmarkEditDialog :open="Boolean(editingGroupId)" :title="t('bookmarks.editGroup')"
+      title-id="edit-group-dialog-title" :busy="isSavingBookmarkEdit" @close="cancelEditingGroup">
+      <form class="edit-form group-edit-form" @submit.prevent="saveGroupEdit">
+        <label :for="`edit-group-page-${editingGroupId}`">{{ t('pages.moveGroup') }}</label>
+        <select :id="`edit-group-page-${editingGroupId}`" v-model="groupEditPageId">
+          <option v-for="page in bookmarkPages" :key="page.id" :value="page.id">{{ bookmarkPageName(page) }}</option>
+        </select>
+        <label :for="`edit-group-${editingGroupId}`">{{ t("bookmarks.groupName") }}</label>
+        <input :id="`edit-group-${editingGroupId}`" v-model="groupEditName" type="text" required />
+        <p :id="`edit-group-color-${editingGroupId}`" class="group-color-label">{{ t("bookmarks.groupColor") }}</p>
+        <button class="group-color-auto secondary-form-button" type="button" @click="suggestGroupColor">
+          {{ t("bookmarks.autoGroupColor") }}
+        </button>
+        <div class="group-color-picker" role="group" :aria-labelledby="`edit-group-color-${editingGroupId}`">
+          <button
+            v-for="colorIndex in groupColorIndexes.slice(0, GROUP_HEADER_FAMILY_COUNT)"
+            :key="colorIndex"
+            class="group-color-swatch"
+            type="button"
+            :class="{ selected: groupEditColorIndex === colorIndex }"
+            :style="groupColorSwatchStyle(colorIndex)"
+            :aria-pressed="groupEditColorIndex === colorIndex"
+            :aria-label="t('bookmarks.groupColorOption', { index: colorIndex + 1 })"
+            @click="groupEditColorIndex = colorIndex"
+          ></button>
+        </div>
+        <details class="group-color-variants" :open="groupEditColorIndex >= GROUP_HEADER_FAMILY_COUNT">
+          <summary>{{ t("bookmarks.moreGroupColors") }}</summary>
+          <div class="group-color-picker" role="group" :aria-labelledby="`edit-group-color-${editingGroupId}`">
+            <button
+              v-for="colorIndex in groupColorIndexes.slice(GROUP_HEADER_FAMILY_COUNT)"
+              :key="colorIndex"
+              class="group-color-swatch"
+              type="button"
+              :class="{ selected: groupEditColorIndex === colorIndex }"
+              :style="groupColorSwatchStyle(colorIndex)"
+              :aria-pressed="groupEditColorIndex === colorIndex"
+              :aria-label="t('bookmarks.groupColorOption', { index: colorIndex + 1 })"
+              @click="groupEditColorIndex = colorIndex"
+            ></button>
+          </div>
+        </details>
+        <p v-if="linksErrorMessage" class="error-text" role="alert">{{ t(linksErrorMessage) }}</p>
+        <div class="form-actions">
+          <button class="secondary-form-button" type="button" @click="cancelEditingGroup">{{ t("common.cancel") }}</button>
+          <button type="submit">{{ t("common.save") }}</button>
+        </div>
+      </form>
+    </BookmarkEditDialog>
+
+    <BookmarkEditDialog :open="Boolean(editingLinkId)" :title="t('bookmarks.editLink')"
+      title-id="edit-link-dialog-title" :busy="isSavingBookmarkEdit" @close="cancelEditingLink">
+      <form class="edit-form" @submit.prevent="saveLinkEdit">
+        <label :for="`edit-link-group-${editingLinkId}`">{{ t("common.group") }}</label>
+        <select :id="`edit-link-group-${editingLinkId}`" v-model="linkEditForm.group_id">
+          <optgroup v-for="page in bookmarkPages" :key="page.id" :label="bookmarkPageName(page)">
+            <option v-for="targetGroup in allLinkGroups.filter(item => item.page_id === page.id)" :key="targetGroup.id" :value="targetGroup.id">
+              {{ targetGroup.name }}
+            </option>
+          </optgroup>
+        </select>
+
+        <label :for="`edit-link-title-${editingLinkId}`">{{ t("common.title") }}</label>
+        <input :id="`edit-link-title-${editingLinkId}`" v-model="linkEditForm.title" type="text" required />
+
+        <label :for="`edit-link-url-${editingLinkId}`">{{ t("common.url") }}</label>
+        <input :id="`edit-link-url-${editingLinkId}`" v-model="linkEditForm.url" type="url" required />
+
+        <p v-if="linksErrorMessage" class="error-text" role="alert">{{ t(linksErrorMessage) }}</p>
+        <div class="form-actions">
+          <button class="secondary-form-button" type="button" @click="cancelEditingLink">{{ t("common.cancel") }}</button>
+          <button type="submit">{{ t("common.save") }}</button>
+        </div>
+      </form>
+    </BookmarkEditDialog>
 
     <AboutDialog
       :open="isAboutPanelOpen"
@@ -2908,7 +2991,6 @@ onBeforeUnmount(() => {
             :data-group-id="group.id"
             :class="{
               dragging: draggingGroupId === group.id,
-              editing: editingGroupId === group.id,
               selected: activeGroupId === group.id,
               'browser-tab-drop-target': browserTabDropGroupId === group.id,
               'link-drop-target': Boolean(draggingLink) && linkPreview?.groupId === group.id
@@ -2936,10 +3018,10 @@ onBeforeUnmount(() => {
                   class="icon-action-button edit-toggle-button"
                   type="button"
                   :class="{ active: editingGroupId === group.id }"
-                  :aria-expanded="editingGroupId === group.id"
-                  :title="t(editingGroupId === group.id ? 'common.collapse' : 'common.edit')"
-                  :aria-label="t(editingGroupId === group.id ? 'common.collapse' : 'common.edit')"
-                  @click="toggleEditingGroup(group)"
+                  aria-haspopup="dialog"
+                  :title="t('common.edit')"
+                  :aria-label="t('common.edit')"
+                  @click="startEditingGroup(group)"
                 >
                   <RowActionIcon name="pencil" />
                 </button>
@@ -2955,54 +3037,6 @@ onBeforeUnmount(() => {
               </div>
             </header>
 
-            <form v-if="editingGroupId === group.id" class="edit-form group-edit-form" @submit.prevent="saveGroupEdit">
-              <label :for="`edit-group-page-${group.id}`">{{ t('pages.moveGroup') }}</label>
-              <select :id="`edit-group-page-${group.id}`" v-model="groupEditPageId">
-                <option v-for="page in bookmarkPages" :key="page.id" :value="page.id">{{ bookmarkPageName(page) }}</option>
-              </select>
-              <label :for="`edit-group-${group.id}`">{{ t("bookmarks.groupName") }}</label>
-              <div class="form-row">
-                <input :id="`edit-group-${group.id}`" v-model="groupEditName" type="text" />
-                <button type="submit">{{ t("common.save") }}</button>
-                <button class="secondary-form-button" type="button" @click="cancelEditingGroup">
-                  {{ t("common.cancel") }}
-                </button>
-              </div>
-              <p :id="`edit-group-color-${group.id}`" class="group-color-label">{{ t("bookmarks.groupColor") }}</p>
-              <button class="group-color-auto secondary-form-button" type="button" @click="suggestGroupColor">
-                {{ t("bookmarks.autoGroupColor") }}
-              </button>
-              <div class="group-color-picker" role="group" :aria-labelledby="`edit-group-color-${group.id}`">
-                <button
-                  v-for="colorIndex in groupColorIndexes.slice(0, GROUP_HEADER_FAMILY_COUNT)"
-                  :key="colorIndex"
-                  class="group-color-swatch"
-                  type="button"
-                  :class="{ selected: groupEditColorIndex === colorIndex }"
-                  :style="groupColorSwatchStyle(colorIndex)"
-                  :aria-pressed="groupEditColorIndex === colorIndex"
-                  :aria-label="t('bookmarks.groupColorOption', { index: colorIndex + 1 })"
-                  @click="groupEditColorIndex = colorIndex"
-                ></button>
-              </div>
-              <details class="group-color-variants" :open="groupEditColorIndex >= GROUP_HEADER_FAMILY_COUNT">
-                <summary>{{ t("bookmarks.moreGroupColors") }}</summary>
-                <div class="group-color-picker" role="group" :aria-labelledby="`edit-group-color-${group.id}`">
-                  <button
-                    v-for="colorIndex in groupColorIndexes.slice(GROUP_HEADER_FAMILY_COUNT)"
-                    :key="colorIndex"
-                    class="group-color-swatch"
-                    type="button"
-                    :class="{ selected: groupEditColorIndex === colorIndex }"
-                    :style="groupColorSwatchStyle(colorIndex)"
-                    :aria-pressed="groupEditColorIndex === colorIndex"
-                    :aria-label="t('bookmarks.groupColorOption', { index: colorIndex + 1 })"
-                    @click="groupEditColorIndex = colorIndex"
-                  ></button>
-                </div>
-              </details>
-            </form>
-
             <ul v-if="groupRows(group).length > 0" class="saved-link-list">
               <template v-for="{ id: rowId, link } in groupRows(group)" :key="rowId">
               <li
@@ -3017,10 +3051,9 @@ onBeforeUnmount(() => {
                 :data-link-id="link.id"
                 :class="{
                   dragging: draggingLink?.linkId === link.id,
-                  editing: editingLinkId === link.id,
                   arriving: arrivingLinkId === link.id
                 }"
-                :draggable="editingLinkId !== link.id"
+                draggable="true"
                 @dragstart.stop="startLinkDrag($event, group, link)"
                 @dragend="endLinkDrag"
                 @mouseenter="updateOverflowTitlePan"
@@ -3028,33 +3061,7 @@ onBeforeUnmount(() => {
                 @focusin="updateOverflowTitlePan"
                 @focusout="resetOverflowTitlePan"
               >
-                <div v-if="editingLinkId === link.id" class="link-edit-panel">
-                  <form class="edit-form" @submit.prevent="saveLinkEdit">
-                    <label :for="`edit-link-group-${link.id}`">{{ t("common.group") }}</label>
-                    <select :id="`edit-link-group-${link.id}`" v-model="linkEditForm.group_id">
-                      <optgroup v-for="page in bookmarkPages" :key="page.id" :label="bookmarkPageName(page)">
-                        <option v-for="targetGroup in allLinkGroups.filter(item => item.page_id === page.id)" :key="targetGroup.id" :value="targetGroup.id">
-                          {{ targetGroup.name }}
-                        </option>
-                      </optgroup>
-                    </select>
-
-                    <label :for="`edit-link-title-${link.id}`">{{ t("common.title") }}</label>
-                    <input :id="`edit-link-title-${link.id}`" v-model="linkEditForm.title" type="text" />
-
-                    <label :for="`edit-link-url-${link.id}`">{{ t("common.url") }}</label>
-                    <input :id="`edit-link-url-${link.id}`" v-model="linkEditForm.url" type="url" />
-
-                    <div class="form-actions">
-                      <button type="submit">{{ t("common.save") }}</button>
-                      <button class="secondary-form-button" type="button" @click="cancelEditingLink">
-                        {{ t("common.cancel") }}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                <div v-else class="saved-link-content">
+                <div class="saved-link-content">
                   <a
                     class="saved-link-button"
                     :href="link.url"
@@ -3094,15 +3101,14 @@ onBeforeUnmount(() => {
                     class="icon-action-button edit-toggle-button"
                     type="button"
                     :class="{ active: editingLinkId === link.id }"
-                    :aria-expanded="editingLinkId === link.id"
-                    :title="t(editingLinkId === link.id ? 'common.collapse' : 'common.edit')"
-                    :aria-label="t(editingLinkId === link.id ? 'common.collapse' : 'common.edit')"
-                    @click="toggleEditingLink(link)"
+                    aria-haspopup="dialog"
+                    :title="t('common.edit')"
+                    :aria-label="t('common.edit')"
+                    @click="startEditingLink(link)"
                   >
                     <RowActionIcon name="pencil" />
                   </button>
                   <button
-                    v-if="editingLinkId !== link.id"
                     class="icon-action-button icon-action-danger"
                     type="button"
                     :title="t('common.delete')"

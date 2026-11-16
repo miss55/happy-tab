@@ -2,7 +2,7 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md) | [繁體中文](./README.zh-TW.md) | [日本語](./README.ja.md) | [한국어](./README.ko.md) | **Español** | [Français](./README.fr.md) | [Deutsch](./README.de.md)
 
-Tabvia es un gestor de marcadores que sustituye la página de nueva pestaña del navegador. La versión actual de la extensión es **0.2.5**. Consulta el [registro de cambios](./CHANGELOG.md).
+Tabvia es un gestor de marcadores que sustituye la página de nueva pestaña del navegador. La versión actual de la extensión es **0.2.6**. Consulta el [registro de cambios](./CHANGELOG.md).
 
 Guarda y organiza enlaces localmente, importa o exporta copias de seguridad JSON y, si lo deseas, sincroniza una instantánea con un servicio de almacenamiento que tú gestionas. Tabvia prioriza el almacenamiento local: no requiere iniciar sesión ni utiliza un servidor propio. La interfaz está disponible en inglés, chino simplificado, chino tradicional, japonés, coreano, español, francés y alemán.
 

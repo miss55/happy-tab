@@ -142,6 +142,36 @@ try {
       pageThemeChecks++;
     }
   }
+  let editDialogChecks = 0;
+  for (const [width, height] of [[1560, 960], [390, 640], [640, 400]]) {
+    await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false });
+    for (const selector of [".link-group:not(.todo-group):not(.link-group-ghost) .edit-toggle-button", ".saved-link-row[data-link-id] .edit-toggle-button"]) {
+      await evaluate(`(async () => {
+        document.querySelector(${JSON.stringify(selector)}).click();
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const shades = document.querySelector('.bookmark-edit-dialog summary');
+        if (shades) shades.click();
+      })()`);
+      await delay(100);
+      const bounds = await evaluate(`(() => {
+        const dialog = document.querySelector('.bookmark-edit-dialog');
+        const rect = dialog.getBoundingClientRect();
+        const input = dialog.querySelector('input');
+        input.scrollIntoView({block: 'nearest'});
+        const inputRect = input.getBoundingClientRect();
+        const inputOnTop = document.elementFromPoint(inputRect.x + inputRect.width / 2, inputRect.y + inputRect.height / 2) === input;
+        const save = dialog.querySelector('button[type="submit"]');
+        save.scrollIntoView({block: 'nearest'});
+        const saveRect = save.getBoundingClientRect();
+        return {fits: rect.x >= 0 && rect.y >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight,
+          inputOnTop, saveOnTop: document.elementFromPoint(saveRect.x + saveRect.width / 2, saveRect.y + saveRect.height / 2) === save};
+      })()`);
+      if (!bounds.fits || !bounds.inputOnTop || !bounds.saveOnTop) throw new Error(`Edit dialog ${width}x${height}: ${JSON.stringify(bounds)}`);
+      await evaluate("document.querySelector('.bookmark-edit-dialog .close-button').click()");
+      editDialogChecks++;
+    }
+  }
+  await send("Emulation.setDeviceMetricsOverride", { width: 1560, height: 960, deviceScaleFactor: 1, mobile: false });
   const screenshotPath = process.argv.find(arg => arg.startsWith("--screenshot="))?.slice("--screenshot=".length);
   if (screenshotPath) {
     await evaluate(`(async () => {
@@ -149,6 +179,7 @@ try {
       const theme = await import('/src/services/theme.ts');
       await setLocale('zh-CN'); await theme.setThemeStyle('cyber'); await theme.setThemeMode('dark');
       document.querySelector('.saved-links-column').scrollTop = 0;
+      document.querySelector('.link-group:not(.todo-group):not(.link-group-ghost) .edit-toggle-button').click();
     })()`);
     await delay(250);
     const screenshot = await send("Page.captureScreenshot", { format: "png" });
@@ -162,7 +193,7 @@ try {
     if (restored) break;
   }
   if (!restored) throw new Error("Reload did not restore the selected page.");
-  console.log(`${result}; ${toolbarChecks} toolbar containment checks; ${pageThemeChecks} page theme checks; reload restores page`);
+  console.log(`${result}; ${toolbarChecks} toolbar containment checks; ${pageThemeChecks} page theme checks; ${editDialogChecks} edit dialog viewport checks; reload restores page`);
 } finally {
   socket?.close(); browser?.kill(); await server?.close(); await delay(500);
   // Only remove the verified disposable profile created by this script.

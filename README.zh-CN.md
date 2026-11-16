@@ -2,7 +2,7 @@
 
 [English](./README.md) | **简体中文** | [繁體中文](./README.zh-TW.md) | [日本語](./README.ja.md) | [한국어](./README.ko.md) | [Español](./README.es.md) | [Français](./README.fr.md) | [Deutsch](./README.de.md)
 
-Tabvia 是一款替换浏览器新标签页的书签管理器。当前扩展版本为 **0.2.5**，详见[更新日志](./CHANGELOG.md)。
+Tabvia 是一款替换浏览器新标签页的书签管理器。当前扩展版本为 **0.2.6**，详见[更新日志](./CHANGELOG.md)。
 
 在本地保存和分组管理链接，导入或导出 JSON 备份，也可以选择将数据快照同步到你自己的第三方存储。Tabvia 采用本地优先架构，无需登录，也没有自建后端。界面支持英语、简体中文、繁体中文、日语、韩语、西班牙语、法语和德语。
 

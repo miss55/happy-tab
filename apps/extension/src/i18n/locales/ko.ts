@@ -286,6 +286,8 @@ export const koMessages: Record<MessageKey, string> = {
   "bookmarks.draggingGroupHint": "강조된 위치로 옮긴 뒤 놓으세요.",
   "bookmarks.draggingLinkHint": "링크 사이나 다른 그룹으로 옮긴 뒤 놓으세요.",
   "bookmarks.draggingTabHint": "강조된 그룹을 골라 이 탭을 저장하세요.",
+  "bookmarks.editGroup": "그룹 편집",
+  "bookmarks.editLink": "북마크 편집",
   "bookmarks.groupName": "그룹 이름",
   "bookmarks.groupColor": "그룹 색상",
   "bookmarks.moreGroupColors": "더 많은 명암 색상",

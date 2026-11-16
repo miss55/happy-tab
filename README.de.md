@@ -2,7 +2,7 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md) | [繁體中文](./README.zh-TW.md) | [日本語](./README.ja.md) | [한국어](./README.ko.md) | [Español](./README.es.md) | [Français](./README.fr.md) | **Deutsch**
 
-Tabvia ist eine Lesezeichenverwaltung, die die Seite für neue Tabs im Browser ersetzt. Die aktuelle Erweiterungsversion ist **0.2.5**. Details stehen im [Änderungsprotokoll](./CHANGELOG.md).
+Tabvia ist eine Lesezeichenverwaltung, die die Seite für neue Tabs im Browser ersetzt. Die aktuelle Erweiterungsversion ist **0.2.6**. Details stehen im [Änderungsprotokoll](./CHANGELOG.md).
 
 Speichere und gruppiere Links lokal, importiere oder exportiere JSON-Sicherungen und synchronisiere bei Bedarf einen Daten-Snapshot mit einem externen Speicher, den du selbst verwaltest. Tabvia setzt auf lokale Speicherung: Eine Anmeldung und ein eigener Backend-Dienst sind nicht erforderlich. Die Oberfläche unterstützt Englisch, vereinfachtes Chinesisch, traditionelles Chinesisch, Japanisch, Koreanisch, Spanisch, Französisch und Deutsch.
 

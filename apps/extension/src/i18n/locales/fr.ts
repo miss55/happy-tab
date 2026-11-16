@@ -286,6 +286,8 @@ export const frMessages: Record<MessageKey, string> = {
   "bookmarks.draggingGroupHint": "Déplacez vers une position mise en évidence, puis relâchez.",
   "bookmarks.draggingLinkHint": "Déplacez entre les liens ou vers un autre groupe, puis relâchez.",
   "bookmarks.draggingTabHint": "Choisissez un groupe mis en évidence pour enregistrer cet onglet.",
+  "bookmarks.editGroup": "Modifier le groupe",
+  "bookmarks.editLink": "Modifier le favori",
   "bookmarks.groupName": "Nom du groupe",
   "bookmarks.groupColor": "Couleur du groupe",
   "bookmarks.moreGroupColors": "Plus de nuances",

@@ -2,7 +2,7 @@
 
 **English** | [简体中文](./README.zh-CN.md) | [繁體中文](./README.zh-TW.md) | [日本語](./README.ja.md) | [한국어](./README.ko.md) | [Español](./README.es.md) | [Français](./README.fr.md) | [Deutsch](./README.de.md)
 
-Tabvia is a bookmark manager that replaces the browser new tab page. The extension version is 0.2.5. See [CHANGELOG.md](./CHANGELOG.md).
+Tabvia is a bookmark manager that replaces the browser new tab page. The extension version is 0.2.6. See [CHANGELOG.md](./CHANGELOG.md).
 
 Save and group links locally, import or export a JSON backup, or optionally sync a snapshot to storage you already own. The extension is local-first: no login and no first-party backend. The UI is available in English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, and German.
 

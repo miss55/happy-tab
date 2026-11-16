@@ -286,6 +286,8 @@ export const esMessages: Record<MessageKey, string> = {
   "bookmarks.draggingGroupHint": "Muévelo a una posición resaltada y suéltalo.",
   "bookmarks.draggingLinkHint": "Muévelo entre enlaces o a otro grupo y suéltalo.",
   "bookmarks.draggingTabHint": "Elige un grupo resaltado para guardar esta pestaña.",
+  "bookmarks.editGroup": "Editar grupo",
+  "bookmarks.editLink": "Editar marcador",
   "bookmarks.groupName": "Nombre del grupo",
   "bookmarks.groupColor": "Color del grupo",
   "bookmarks.moreGroupColors": "Más tonos",

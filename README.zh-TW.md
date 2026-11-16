@@ -2,7 +2,7 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md) | **繁體中文** | [日本語](./README.ja.md) | [한국어](./README.ko.md) | [Español](./README.es.md) | [Français](./README.fr.md) | [Deutsch](./README.de.md)
 
-Tabvia 是一款取代瀏覽器新分頁的書籤管理工具。目前擴充功能版本為 **0.2.5**，詳見[更新紀錄](./CHANGELOG.md)。
+Tabvia 是一款取代瀏覽器新分頁的書籤管理工具。目前擴充功能版本為 **0.2.6**，詳見[更新紀錄](./CHANGELOG.md)。
 
 在本機儲存連結並分組管理，匯入或匯出 JSON 備份，也可選擇將資料快照同步到你自己的第三方儲存空間。Tabvia 採用本機優先架構，無須登入，也沒有自建後端。介面支援英文、簡體中文、繁體中文、日文、韓文、西班牙文、法文和德文。
 

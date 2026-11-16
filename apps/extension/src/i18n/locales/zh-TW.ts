@@ -286,6 +286,8 @@ export const zhTWMessages: Record<MessageKey, string> = {
   "bookmarks.draggingGroupHint": "移動到醒目提示位置，放開即可調整群組。",
   "bookmarks.draggingLinkHint": "移動到連結之間或其他群組，放開即可放置。",
   "bookmarks.draggingTabHint": "選擇醒目提示的群組，放開即可儲存分頁。",
+  "bookmarks.editGroup": "編輯書籤群組",
+  "bookmarks.editLink": "編輯書籤",
   "bookmarks.groupName": "群組名稱",
   "bookmarks.groupColor": "群組顏色",
   "bookmarks.moreGroupColors": "更多深淺顏色",

@@ -2,7 +2,7 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md) | [繁體中文](./README.zh-TW.md) | [日本語](./README.ja.md) | [한국어](./README.ko.md) | [Español](./README.es.md) | **Français** | [Deutsch](./README.de.md)
 
-Tabvia est un gestionnaire de favoris qui remplace la page de nouvel onglet du navigateur. La version actuelle de l’extension est **0.2.5**. Consultez le [journal des modifications](./CHANGELOG.md).
+Tabvia est un gestionnaire de favoris qui remplace la page de nouvel onglet du navigateur. La version actuelle de l’extension est **0.2.6**. Consultez le [journal des modifications](./CHANGELOG.md).
 
 Enregistrez et classez vos liens localement, importez ou exportez une sauvegarde JSON et, si vous le souhaitez, synchronisez un instantané avec un stockage externe que vous gérez. Tabvia privilégie le stockage local : aucune connexion à un compte ni aucun serveur propre au produit ne sont nécessaires. L’interface est disponible en anglais, chinois simplifié, chinois traditionnel, japonais, coréen, espagnol, français et allemand.
 

@@ -3086,8 +3086,7 @@ select:focus {
 }
 
 .link-group:hover .link-group-header .row-actions,
-.link-group:focus-within .link-group-header .row-actions,
-.link-group.editing .link-group-header .row-actions {
+.link-group:focus-within .link-group-header .row-actions {
   opacity: 1;
 }
 
@@ -3341,19 +3340,9 @@ select:focus {
 }
 
 .saved-link-row:hover .saved-link-actions,
-.saved-link-row:focus-within .saved-link-actions,
-.saved-link-row.editing .saved-link-actions {
+.saved-link-row:focus-within .saved-link-actions {
   opacity: 1;
   pointer-events: auto;
-}
-
-.saved-link-row.editing .saved-link-actions {
-  top: 9px;
-  transform: none;
-}
-
-.saved-link-row.editing .link-edit-panel .edit-form {
-  padding-top: 52px;
 }
 
 .saved-link-favicon {
@@ -3363,10 +3352,6 @@ select:focus {
 .saved-link-copy {
   min-width: 0;
   display: grid;
-}
-
-.link-edit-panel {
-  background: #fbfcfe;
 }
 
 .saved-link-title,
@@ -3909,7 +3894,6 @@ body,
 
 .data-dialog-section,
 .edit-form,
-.link-edit-panel,
 .todo-row.completed,
 .data-exclusions {
   border-color: var(--theme-border);
@@ -4715,10 +4699,6 @@ select,
   min-height: 30px;
   padding: 3px 10px;
   font-size: 12px;
-}
-
-.group-edit-form .secondary-form-button {
-  grid-column: 1 / -1;
 }
 
 .edit-form .group-color-swatch {
